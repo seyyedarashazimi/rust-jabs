@@ -1,11 +1,9 @@
 use crate::simulator::event::Event;
 use crate::simulator::Simulator;
-use std::cell::RefCell;
-use std::rc::Rc;
 
 #[test]
 fn simulator_engine_test1() {
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     struct MyEvent {
         message: String,
     }
@@ -39,7 +37,7 @@ fn simulator_engine_test1() {
         .collect();
 
     let events: Vec<_> = (0..no_of_events)
-        .map(|i| Rc::new(RefCell::new(MyEvent::new(messages[i].clone()))))
+        .map(|i| MyEvent::new(messages[i].clone()))
         .collect();
 
     // Add events into the simulator queue.
@@ -67,31 +65,23 @@ fn simulator_engine_test1() {
     println!("new scenario:");
     println!("-------------");
     sim.put_event(
-        Rc::new(RefCell::new(MyEvent::new(String::from(
-            "event 1, added at=0, diff time=31",
-        )))),
+        MyEvent::new(String::from("event 1, added at=0, diff time=31")),
         31.0_f64,
     );
     sim.put_event(
-        Rc::new(RefCell::new(MyEvent::new(String::from(
-            "event 2, added at=0, diff time=9",
-        )))),
+        MyEvent::new(String::from("event 2, added at=0, diff time=9")),
         9.0_f64,
     );
     sim.execute_next_event();
     assert_eq!(sim.get_simulation_time(), 9.0_f64);
     sim.put_event(
-        Rc::new(RefCell::new(MyEvent::new(String::from(
-            "event 3, added at=9, diff time=10",
-        )))),
+        MyEvent::new(String::from("event 3, added at=9, diff time=10")),
         10.0_f64,
     );
     sim.execute_next_event();
     assert_eq!(sim.get_simulation_time(), 19.0_f64);
     sim.put_event(
-        Rc::new(RefCell::new(MyEvent::new(String::from(
-            "event 4, added at=19, diff time=12",
-        )))),
+        MyEvent::new(String::from("event 4, added at=19, diff time=12")),
         12.0_f64,
     );
     sim.execute_next_event();

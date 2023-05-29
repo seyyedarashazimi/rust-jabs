@@ -1,3 +1,5 @@
-pub mod event_core;
+use std::fmt::Debug;
 
-pub use event_core::Event;
+pub trait Event: Debug + Clone {
+    fn execute(&self) {}
+}
