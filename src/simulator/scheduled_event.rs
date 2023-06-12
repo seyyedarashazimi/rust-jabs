@@ -54,7 +54,7 @@ impl<T: Event> Ord for ScheduledEvent<T> {
 
 impl<T: Event> ScheduledEvent<T> {
     pub fn new(event: T, time: f64, number: i64) -> Self {
-        ScheduledEvent {
+        Self {
             event,
             time,
             number,

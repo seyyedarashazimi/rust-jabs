@@ -1,4 +1,5 @@
 pub mod event;
+pub mod rand;
 pub mod scheduled_event;
 
 pub use self::scheduled_event::*;
