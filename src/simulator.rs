@@ -3,53 +3,54 @@ pub mod rand;
 pub mod scheduled_event;
 
 pub use self::scheduled_event::*;
+use crate::network::Network;
 use crate::simulator::event::Event;
-use priority_queue::PriorityQueue;
+use std::collections::BinaryHeap;
 
 /// @author arash:
 /// A discrete time event-based simulator with event queue
 #[derive(Default)]
-pub struct Simulator<T: Event> {
+pub struct Simulator {
     /// The queue that contains all events which are going to be executed. This
     /// queue is a priority queue sorted by the time in which the event should
     /// be executed.
     ///
-    /// The `event_queue` is of type [`PriorityQueue`], including events of type
+    /// The `event_queue` is of type [`BinaryHeap`], including events of type
     /// [`ScheduledEvent`].  
-    event_queue: PriorityQueue<ScheduledEvent<T>, ScheduledEvent<T>>,
+    event_queue: BinaryHeap<ScheduledEvent>,
     /// The simulation execution time of the most recent event
-    simulation_time: f64,
+    pub simulation_time: f64,
     /// Number of events inserted in the event queue till now (whether simulated
     /// or not)
-    inserted_events: i64,
+    pub inserted_events: i64,
 }
 
-impl<T: Event> Simulator<T> {
+impl Simulator {
     pub fn new() -> Self {
         Self {
-            event_queue: PriorityQueue::new(),
+            event_queue: BinaryHeap::new(),
             simulation_time: 0.0_f64,
             inserted_events: 0_i64,
         }
     }
 
     /// Executes the next event in the event queue.
-    pub fn execute_next_event(&mut self) {
-        if let Some((current_scheduled_event, _)) = self.event_queue.pop() {
+    pub fn execute_next_event(&mut self, ecs: &mut Network) {
+        if let Some(mut current_scheduled_event) = self.event_queue.pop() {
             self.simulation_time = current_scheduled_event.time();
-            println!("simulation time: {}", self.simulation_time);
-            current_scheduled_event.event().execute();
+            // println!("simulation time: {}", self.simulation_time);
+            current_scheduled_event.event.execute(ecs, self);
         }
     }
 
-    /// Returns what is the next event to be executed without executing the
-    /// event.
+    /// Returns an immutable reference to the next event to be executed without
+    /// executing the event.
     ///
     /// # Returns
     ///
-    /// The next event to be executed in the simulator
-    pub fn peek_event(&self) -> Option<T> {
-        self.event_queue.peek().map(|(se, _)| se.event())
+    /// Immutable reference of the next event to be executed in the simulator
+    pub fn peek_event(&self) -> Option<&Box<dyn Event>> {
+        self.event_queue.peek().map(|se| &(se.event))
     }
 
     /// Check if more events exist in the event queue to be simulated.
@@ -69,19 +70,15 @@ impl<T: Event> Simulator<T> {
     /// * `event`: The event to be executed
     /// * `remaining_time_to_execution`: The time remaining to execution time of
     /// the event.
-    ///
-    /// # Returns
-    ///
-    /// the scheduled event
-    pub fn put_event(&mut self, event: T, remaining_time_to_execution: f64) -> ScheduledEvent<T> {
+    pub fn put_event(&mut self, event: Box<dyn Event>, remaining_time_to_execution: f64) {
         let s_event = ScheduledEvent::new(
             event,
             self.simulation_time + remaining_time_to_execution,
             self.inserted_events,
         );
-        self.event_queue.push(s_event.clone(), s_event.clone());
+        // let s_event_key: ScheduledEventKey = (&s_event).into();
+        self.event_queue.push(s_event);
         self.inserted_events += 1;
-        s_event
     }
 
     /// Removes an event already available in the event queue. It is specially
@@ -91,18 +88,27 @@ impl<T: Event> Simulator<T> {
     /// # Arguments
     ///
     /// * `scheduled_event`: The  scheduled event to be removed
-    pub fn remove_event(&mut self, scheduled_event: ScheduledEvent<T>) {
-        self.event_queue.remove(&scheduled_event);
-    }
+    // pub fn remove_event(&mut self, scheduled_event: ScheduledEvent) {
+    //     self.event_queue.remove(&scheduled_event);
+    // }
 
     /// Returns the simulation time that the latest event has executed.
     ///
     /// # Returns
     ///
     /// Simulation time of the latest simulated event
-    pub fn get_simulation_time(&self) -> f64 {
-        self.simulation_time
-    }
+    // pub fn get_simulation_time(&self) -> f64 {
+    //     self.simulation_time
+    // }
+
+    /// Returns the inserted events.
+    ///
+    /// # Returns
+    ///
+    ///  inserted events
+    // pub fn get_inserted_events(&self) -> i64 {
+    //     self.inserted_events
+    // }
 
     /// Clears the event queue from any more events. Restarts the current time
     /// of simulation to zero.
