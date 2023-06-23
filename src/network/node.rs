@@ -1,81 +1,49 @@
-pub mod nodes;
+use crate::network::packet::Packet;
+use specs::prelude::*;
+use specs_derive::*;
+use std::collections::HashSet;
 
-use self::nodes::Node;
-use crate::network::Network;
-use crate::simulator::event::Event;
-use crate::simulator::rand::RandomnessEngine;
-use crate::simulator::Simulator;
-use std::cell::RefCell;
-use std::rc::{Rc, Weak};
-
-pub enum NodeType {}
-
-// TODO: Choose a more meaningful name.
-pub trait NetworkInterfaceTrait<T: Event> {
-    // type T: Event;
-    // type N: Node;
-    // type S: NetworkStats<NodeType>;
-
-    fn take_down(&self);
-    fn bring_up(&self);
-    fn is_network_interface_down(&self) -> bool;
-    fn connect_network(
-        &self,
-        network: Option<Rc<RefCell<Network<T>>>>,
-        randomness_engine: Rc<RefCell<RandomnessEngine>>,
-    );
+//----------Components----------//
+#[derive(Component, Default, Debug)]
+#[storage(VecStorage)]
+pub struct NodeName {
+    name: String,
 }
 
-// TODO: Remove circular referencing.
-struct NetworkInterface<T: Event> {
-    pub download_bandwidth: i64,
-    pub upload_bandwidth: i64,
-    pub node: Weak<RefCell<Node<T>>>, // todo
-    pub simulator: Rc<RefCell<Simulator<T>>>,
+#[derive(Component, Default, Debug)]
+#[storage(VecStorage)]
+pub struct Neighbors {
+    pub neighbors: Vec<Entity>,
 }
 
-impl<T: Event> NetworkInterfaceTrait<T> for NetworkInterface<T> {
-    // type T = Event;
-
-    fn take_down(&self) {
-        todo!()
-    }
-
-    fn bring_up(&self) {
-        todo!()
-    }
-
-    fn is_network_interface_down(&self) -> bool {
-        todo!()
-    }
-
-    fn connect_network(
-        &self,
-        network: Option<Rc<RefCell<Network<T>>>>,
-        randomness_engine: Rc<RefCell<RandomnessEngine>>,
-    ) {
-        todo!()
-    }
+#[derive(Component, Default, Debug)]
+#[storage(VecStorage)]
+pub struct Bandwidth {
+    pub download: i64,
+    pub upload: i64,
 }
 
-// impl<T: Event> Default for NetworkInterface<T> {
-//     fn default() -> Self {
-//         todo!()
-//     }
-// }
+#[derive(Component, Default, Debug)]
+#[storage(VecStorage)]
+pub struct NodeType;
 
-impl<T: Event> NetworkInterface<T> {
-    fn new(
-        simulator: Rc<RefCell<Simulator<T>>>,
-        node: Weak<RefCell<Node<T>>>,
-        download_bandwidth: i64,
-        upload_bandwidth: i64,
-    ) -> Rc<RefCell<Self>> {
-        Rc::new(RefCell::new(Self {
-            simulator,
-            node,
-            download_bandwidth,
-            upload_bandwidth,
-        }))
-    }
+#[derive(Component, Default, Debug)]
+#[storage(NullStorage)]
+pub struct Is26;
+
+#[derive(Component, Default, Debug)]
+#[storage(NullStorage)]
+pub struct Connected;
+
+#[derive(Component, Default, Debug)]
+#[storage(VecStorage)]
+pub struct HistoryPackets {
+    pub received: HashSet<Packet>,
+}
+
+#[derive(Component, Default, Debug)]
+#[storage(VecStorage)]
+pub struct Uplink {
+    pub upload_bandwidth: u64,
+    pub latest_uploaded_time_done: f64,
 }
