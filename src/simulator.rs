@@ -3,8 +3,8 @@ pub mod rand;
 pub mod scheduled_event;
 
 pub use self::scheduled_event::*;
+use crate::network::Network;
 use crate::simulator::event::Event;
-use specs::World;
 use std::collections::BinaryHeap;
 
 /// @author arash:
@@ -35,7 +35,7 @@ impl Simulator {
     }
 
     /// Executes the next event in the event queue.
-    pub fn execute_next_event(&mut self, ecs: &mut World) {
+    pub fn execute_next_event(&mut self, ecs: &mut Network) {
         if let Some(mut current_scheduled_event) = self.event_queue.pop() {
             self.simulation_time = current_scheduled_event.time();
             // println!("simulation time: {}", self.simulation_time);

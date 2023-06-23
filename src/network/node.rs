@@ -1,48 +1,38 @@
 use crate::network::packet::Packet;
-use specs::prelude::*;
-use specs_derive::*;
 use std::collections::HashSet;
 
 //----------Components----------//
-#[derive(Component, Default, Debug)]
-#[storage(VecStorage)]
+#[derive(Default, Debug, Clone)]
 pub struct NodeName {
     name: String,
 }
 
-#[derive(Component, Default, Debug)]
-#[storage(VecStorage)]
+#[derive(Default, Debug, Clone)]
 pub struct Neighbors {
-    pub neighbors: Vec<Entity>,
+    pub neighbors: Vec<usize>,
 }
 
-#[derive(Component, Default, Debug)]
-#[storage(VecStorage)]
+#[derive(Default, Debug, Clone)]
 pub struct Bandwidth {
     pub download: i64,
     pub upload: i64,
 }
 
-#[derive(Component, Default, Debug)]
-#[storage(VecStorage)]
+#[derive(Default, Debug, Clone)]
 pub struct NodeType;
 
-#[derive(Component, Default, Debug)]
-#[storage(NullStorage)]
+#[derive(Default, Debug, Clone)]
 pub struct Is26;
 
-#[derive(Component, Default, Debug)]
-#[storage(NullStorage)]
+#[derive(Default, Debug, Clone)]
 pub struct Connected;
 
-#[derive(Component, Default, Debug)]
-#[storage(VecStorage)]
+#[derive(Default, Debug, Clone)]
 pub struct HistoryPackets {
     pub received: HashSet<Packet>,
 }
 
-#[derive(Component, Default, Debug)]
-#[storage(VecStorage)]
+#[derive(Default, Debug, Clone)]
 pub struct Uplink {
     pub upload_bandwidth: u64,
     pub latest_uploaded_time_done: f64,

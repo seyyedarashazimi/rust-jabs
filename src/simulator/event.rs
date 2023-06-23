@@ -4,13 +4,12 @@ mod packet_delivery_event;
 
 use crate::network::node::*;
 use crate::network::packet::Packet;
-use crate::network::LOGGER_MODE;
+use crate::network::{Network, LOGGER_MODE};
 use crate::simulator::Simulator;
-use specs::{Entity, World, WorldExt};
 use std::fmt::Debug;
 
 pub trait Event: Debug {
-    fn execute(&mut self, ecs: &mut World, sim: &mut Simulator);
+    fn execute(&mut self, ecs: &mut Network, sim: &mut Simulator);
 }
 
 #[derive(Debug, Clone)]
@@ -19,11 +18,12 @@ pub struct PacketGenerationEvent {
 }
 
 impl Event for PacketGenerationEvent {
-    fn execute(&mut self, ecs: &mut World, simulator: &mut Simulator) {
+    fn execute(&mut self, ecs: &mut Network, simulator: &mut Simulator) {
         let node = &self.packet.from;
-        if ecs.read_component::<Connected>().get(*node).is_none() {
+        if !node_is_connected(ecs, node) {
             return;
         }
+
         let packet = &self.packet;
 
         println!("[GENERATE] A new packet generated at node {:?}", node);
@@ -35,27 +35,28 @@ impl Event for PacketGenerationEvent {
 #[derive(Debug, Clone)]
 pub struct PropagateEvent {
     pub packet: Packet,
-    pub receiving_node: Entity,
+    pub receiving_node: usize,
 }
 
 impl Event for PropagateEvent {
-    fn execute(&mut self, ecs: &mut World, simulator: &mut Simulator) {
+    fn execute(&mut self, ecs: &mut Network, simulator: &mut Simulator) {
         self.receive_packet(ecs, simulator);
     }
 }
 
 impl PropagateEvent {
-    fn receive_packet(&mut self, ecs: &mut World, simulator: &mut Simulator) {
+    fn receive_packet(&mut self, ecs: &mut Network, simulator: &mut Simulator) {
         let node = &self.receiving_node;
-        if ecs.read_component::<Connected>().get(*node).is_none() {
+        if !node_is_connected(ecs, node) {
             return;
         }
+
         let packet = &self.packet;
 
         // determine whether the received packet is new and put it inside the
         // history packets.
         let mut packet_is_new = false;
-        if let Some(history_packets) = ecs.write_storage::<HistoryPackets>().get_mut(*node) {
+        if let Some(history_packets) = ecs.history.get_mut(*node) {
             if !history_packets.received.contains(packet) {
                 packet_is_new = history_packets.received.insert(packet.clone());
             }
@@ -77,8 +78,8 @@ impl PropagateEvent {
     }
 }
 
-fn send_to_neighbors(ecs: &mut World, simulator: &mut Simulator, node: &Entity, packet: &Packet) {
-    if let Some(neighbors) = ecs.read_storage::<Neighbors>().get(*node) {
+fn send_to_neighbors(ecs: &mut Network, simulator: &mut Simulator, node: &usize, packet: &Packet) {
+    if let Some(neighbors) = ecs.neighbors.get(*node) {
         for neighbor in &neighbors.neighbors {
             // new event:
             let transfer_event = Box::new(PropagateEvent {
@@ -105,4 +106,8 @@ fn remaining_time_to_upload(uplink: &mut Uplink, simulator: &Simulator, packet: 
     let send_end_time = send_start_time + uploading_time;
     uplink.latest_uploaded_time_done = send_end_time;
     send_end_time - simulator.simulation_time
+}
+
+fn node_is_connected(ecs: &Network, node: &usize) -> bool {
+    ecs.is_connected.get(*node).map_or(false, |&status| status)
 }
