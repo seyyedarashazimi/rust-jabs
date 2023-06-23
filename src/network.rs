@@ -1,3 +1,8 @@
+//! The ECS design for simulating network.
+//!
+//! Network is created based on
+//! [Entity-Component-System](https://en.wikipedia.org/wiki/Entity_component_system)
+//! design pattern.
 #![allow(unused)]
 
 pub mod node;
@@ -5,109 +10,83 @@ pub mod packet;
 
 use crate::network::node::*;
 use crate::network::packet::Packet;
-use crate::simulator::event::PropagateEvent;
+use crate::simulator::event::propagate_event::PropagateEvent;
 use crate::simulator::rand::RandomnessEngine;
 use crate::simulator::Simulator;
+use specs::prelude::*;
 
-// use specs::{Builder, Component, DenseVecStorage, World, WorldExt};
-
+/// Temporary constant value standing for the debugger. Will be replaced with a
+/// sophisticated debugger later.
 pub const LOGGER_MODE: bool = false;
 
-//---------Resources---------//
-// struct Simulator
-
-//----------Systems----------//
-// struct SimulatingEvents;
-//
-// impl<'a> System<'a> for SimulatingEvents {
-//     type SystemData = (
-//         Entities<'a>,
-//         ReadStorage<'a, Neighbors>,
-//         WriteStorage<'a, HistoryPackets>,
-//     );
-//
-//     fn run(&mut self, data: Self::SystemData) {
-//         let (nodes, neighbors, history) = data;
-//     }
-// }
-
-//----------World----------//
-pub struct Network {
-    // components:
-    pub node_name: Vec<NodeName>,
-    pub is_connected: Vec<bool>,
-    pub neighbors: Vec<Neighbors>,
-    pub history: Vec<HistoryPackets>,
-    // entities:
-    pub num_of_nodes: usize,
-    // node: Vec<usize>,
-}
-
-impl Network {
-    pub fn create_with_size(num_of_nodes: usize) -> Self {
-        let node_name: Vec<NodeName> = vec![NodeName::default(); num_of_nodes];
-        let is_connected: Vec<bool> = vec![false; num_of_nodes];
-        let neighbors: Vec<Neighbors> = vec![Neighbors::default(); num_of_nodes];
-        let history: Vec<HistoryPackets> = vec![HistoryPackets::default(); num_of_nodes];
-        Self {
-            node_name,
-            is_connected,
-            neighbors,
-            history,
-            num_of_nodes,
-        }
-    }
-}
-
 //----------State----------//
+/// The state of network including the ECS `World`.
 pub struct NetworkState {
-    pub ecs: Network,
+    /// The Entity-Component-System(ECS) design. Each node is an `Entity`
+    /// which is an index + generation. The ECS is of type `World` from
+    /// `specs` crate.
+    pub ecs: World,
     pub simulator: Simulator,
     pub randomness_engine: RandomnessEngine,
 }
 
 //----------Functions----------//
-fn net_write_component<T>(ecs: &mut Network, node: usize, value: T) -> Result<(), &'static str> {
-    if let Some(status) = ecs.is_connected.get_mut(node) {
-        *status = true;
-        return Ok(());
-    }
-    Err("Index out of bounds")
+
+/// Add [`Connected`] component to a node.
+///
+/// # Arguments
+///
+/// * `ecs`: Mutable reference to a `World` type;
+/// * `node`: a give node `Entity`.
+fn connect_node(ecs: &mut World, node: Entity) {
+    ecs.write_storage::<Connected>()
+        .insert(node, Connected)
+        .expect("Node was already connected.");
 }
 
-fn connect_node(ecs: &mut Network, node: usize) -> Result<(), String> {
-    if let Some(status) = ecs.is_connected.get_mut(node) {
-        *status = true;
-        return Ok(());
-    }
-    Err(format!("Index out of bounds for connect_node: {}", node))
+/// Remove [`Connected`] component from a node.
+///
+/// # Arguments
+///
+/// * `ecs`: Mutable reference to a `World` type;
+/// * `node`: a give node `Entity`.
+fn disconnect_node(ecs: &mut World, node: Entity) {
+    ecs.write_storage::<Connected>()
+        .remove(node)
+        .expect("Node was already disconnected.");
 }
 
-fn disconnect_node(ecs: &mut Network, node: usize) -> Result<(), String> {
-    if let Some(status) = ecs.is_connected.get_mut(node) {
-        *status = false;
-        return Ok(());
-    }
-    Err(format!("Index out of bounds for disconnect_node: {}", node))
+/// Check if the node is online.
+///
+/// # Arguments
+///
+/// * `ecs`: Immutable reference to [`World`];
+/// * `node`: [`Entity`] index denoting the node;
+///
+/// # Return
+///
+/// true if node exists and is connected.
+pub fn node_is_connected(ecs: &World, node: Entity) -> bool {
+    ecs.read_storage::<Connected>().get(node).is_some()
 }
 
-fn assign_random_neighbors(ecs: &mut Network, min_neighbors: usize, max_neighbors: usize) {
+fn assign_random_neighbors(ecs: &mut World, min_neighbors: usize, max_neighbors: usize) {
     use rand::seq::SliceRandom;
     use rand::Rng;
 
     let mut rng = rand::thread_rng(); // Create a random number generator
-    let nodes: Vec<usize> = (0..ecs.num_of_nodes).collect();
+    let nodes: Vec<Entity> = ecs.entities().join().collect(); // Collect all entities in a Vec
 
     for node in nodes.iter() {
         let num_neighbors = rng.gen_range(min_neighbors..=max_neighbors); // Generate a random number between min and max
 
-        let other_nodes: Vec<&usize> = nodes
+        let other_nodes: Vec<&Entity> = nodes
             .iter()
             .filter(|&&neighbors| neighbors != *node) // remove itself from neighbors
             .collect();
 
         // Generate a random subset of other nodes to be neighbors
-        let neighbors: Vec<usize> = other_nodes
+        let neighbors: Vec<Entity> = other_nodes
             .choose_multiple(&mut rng, num_neighbors)
             .cloned()
             .cloned()
@@ -116,33 +95,29 @@ fn assign_random_neighbors(ecs: &mut Network, min_neighbors: usize, max_neighbor
         assert!(min_neighbors <= neighbors.len() && max_neighbors >= neighbors.len());
 
         // Insert the Neighbors component to the node
-        *ecs.neighbors
-            .get_mut(*node)
-            .expect("Failed to insert neighbors") = Neighbors { neighbors };
+        ecs.write_storage::<Neighbors>()
+            .insert(*node, Neighbors { neighbors })
+            .expect("Failed to insert neighbors");
     }
 }
 
-// fn create_node_connected(ecs: &mut World) -> Entity {
-//     ecs.create_entity()
-//         .with(Neighbors::default())
-//         .with(Bandwidth::default())
-//         .with(NodeType::default())
-//         .with(Connected::default())
-//         .with(HistoryPackets::default())
-//         .build()
-// }
-
-pub fn set_all_nodes_connected(ecs: &mut Network) {
-    ecs.is_connected.iter_mut().for_each(|mut x| *x = true);
+fn create_node_connected(ecs: &mut World) -> Entity {
+    ecs.create_entity()
+        .with(Neighbors::default())
+        .with(Connected::default())
+        .with(HistoryPackets::default())
+        .build()
 }
 
 pub fn create_nodes_connected_with_neighbors(
-    ecs: &mut Network,
+    ecs: &mut World,
     num_of_nodes: usize,
     min_neighbors: usize,
     max_neighbors: usize,
 ) {
-    set_all_nodes_connected(ecs);
+    for _ in 0..num_of_nodes {
+        create_node_connected(ecs);
+    }
     assign_random_neighbors(ecs, min_neighbors, max_neighbors);
 }
 
@@ -174,7 +149,7 @@ pub fn create_nodes_connected_with_neighbors(
 //     }
 // }
 
-pub fn generate_packet_default_message(from: usize, to: usize, size: u64) -> Packet {
+pub fn generate_packet_default_message(from: Entity, to: Entity, size: u64) -> Packet {
     if LOGGER_MODE {
         println!(
             "A new packet generated! from:{:?}, to:{:?}, size:{:?}",
@@ -189,18 +164,18 @@ pub fn generate_packet_default_message(from: usize, to: usize, size: u64) -> Pac
     }
 }
 
-pub fn simulation_packet_transfer(ecs: &mut Network, simulator: &mut Simulator) {
+pub fn simulation_packet_transfer(ecs: &mut World, simulator: &mut Simulator) {
     while simulator.is_there_more_events() {
         simulator.execute_next_event(ecs);
     }
 }
 
-pub fn random_nodes_tx_rx(nodes: &mut Vec<usize>, count: usize) -> Vec<(usize, usize)> {
+pub fn random_nodes_tx_rx(nodes: &mut Vec<Entity>, count: usize) -> Vec<(Entity, Entity)> {
     use rand::seq::SliceRandom;
 
     let mut rng = rand::thread_rng();
 
-    let mut chosen_nodes: Vec<(usize, usize)> = nodes
+    let mut chosen_nodes: Vec<(Entity, Entity)> = nodes
         .choose_multiple(&mut rng, count)
         .zip(nodes.choose_multiple(&mut rng, count))
         .filter(|(&tx, &rx)| tx != rx)
@@ -217,10 +192,56 @@ pub fn random_nodes_tx_rx(nodes: &mut Vec<usize>, count: usize) -> Vec<(usize, u
     chosen_nodes
 }
 
+/// For each neighbor connected to a node, create a ['PropagateEvent'] and push
+/// into the simulator
+///
+/// # Arguments
+///
+/// * `ecs`: Mutable reference to [`World`];
+/// * `simulator`: Mutable reference to [`Simulator`];
+/// * `node`: [`Entity`] index denoting the node;
+/// * `packet`: Immutable reference to [`Packet`] that is going to be sent to
+/// neighbors of `node`.
+pub fn send_to_neighbors(
+    ecs: &mut World,
+    simulator: &mut Simulator,
+    node: Entity,
+    packet: &Packet,
+) {
+    if let Some(neighbors) = ecs.read_storage::<Neighbors>().get(node) {
+        for neighbor in &neighbors.neighbors {
+            // new event:
+            let transfer_event = Box::new(PropagateEvent {
+                packet: packet.clone(),
+                receiving_node: *neighbor,
+            });
+            // let mut uplinks = ecs.write_storage::<Uplink>();
+            // let uplink = uplinks.get_mut(node).unwrap();
+            // let upload_delay = remaining_time_to_upload(uplink, simulator, packet);
+            simulator.put_event(transfer_event, 2.0);
+            // println!(
+            //     "Forwarding message from node:{:?} to node:{:?}",
+            //     node, neighbor
+            // );
+        }
+    }
+}
+
+fn remaining_time_to_upload(uplink: &mut Uplink, simulator: &Simulator, packet: &Packet) -> f64 {
+    let uploading_time = (packet.size as f64) / (uplink.upload_bandwidth as f64);
+    let send_start_time = uplink
+        .latest_uploaded_time_done
+        .max(simulator.simulation_time);
+    let send_end_time = send_start_time + uploading_time;
+    uplink.latest_uploaded_time_done = send_end_time;
+    send_end_time - simulator.simulation_time
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::simulator::event::PropagateEvent;
+    use crate::simulator::event::packet_generation_event;
+    use crate::simulator::event::packet_generation_event::PacketGenerationEvent;
     use std::time::Instant;
 
     #[test]
@@ -232,10 +253,15 @@ mod test {
         const NUM_OF_NEIGHBORS: usize = 20;
 
         let mut network = NetworkState {
-            ecs: Network::create_with_size(NUM_OF_NODES),
+            ecs: World::new(),
             simulator: Simulator::new(),
             randomness_engine: RandomnessEngine::default(),
         };
+
+        // components:
+        network.ecs.register::<Neighbors>();
+        network.ecs.register::<Connected>();
+        network.ecs.register::<HistoryPackets>();
 
         create_nodes_connected_with_neighbors(
             &mut network.ecs,
@@ -246,14 +272,13 @@ mod test {
         // set_bandwidth_constant(&mut network.ecs, 2, 3);
 
         // set sender and receiver nodes:
-        let mut nodes: Vec<usize> = (0..NUM_OF_NODES).collect();
+        let mut nodes: Vec<Entity> = network.ecs.entities().join().collect();
         let event_nodes = random_nodes_tx_rx(&mut nodes, NUM_OF_PACKETS);
 
         for (sender, receiver) in event_nodes {
             let initial_packet = generate_packet_default_message(sender, receiver, 1);
-            let initial_event = Box::new(PropagateEvent {
+            let initial_event = Box::new(PacketGenerationEvent {
                 packet: initial_packet,
-                receiving_node: sender, // give sender the initial packet
             });
             network.simulator.put_event(initial_event, 1.0);
         }

@@ -1,21 +1,28 @@
+use crate::network::node::*;
 use crate::network::*;
-use crate::simulator::event::PropagateEvent;
+use crate::simulator::event::packet_generation_event::PacketGenerationEvent;
 use crate::simulator::rand::RandomnessEngine;
 use crate::simulator::Simulator;
+use specs::prelude::*;
 use std::time::Instant;
 
 pub fn ecs_test() {
     let tic = Instant::now();
 
-    const NUM_OF_PACKETS: usize = 144;
+    const NUM_OF_PACKETS: usize = 1;
     const NUM_OF_NODES: usize = 6000;
     const NUM_OF_NEIGHBORS: usize = 20;
 
     let mut network = NetworkState {
-        ecs: Network::create_with_size(NUM_OF_NODES),
+        ecs: World::new(),
         simulator: Simulator::new(),
         randomness_engine: RandomnessEngine::default(),
     };
+
+    // components:
+    network.ecs.register::<Neighbors>();
+    network.ecs.register::<Connected>();
+    network.ecs.register::<HistoryPackets>();
 
     create_nodes_connected_with_neighbors(
         &mut network.ecs,
@@ -26,14 +33,13 @@ pub fn ecs_test() {
     // set_bandwidth_constant(&mut network.ecs, 2, 3);
 
     // set sender and receiver nodes:
-    let mut nodes: Vec<usize> = (0..NUM_OF_NODES).collect();
+    let mut nodes: Vec<Entity> = network.ecs.entities().join().collect();
     let event_nodes = random_nodes_tx_rx(&mut nodes, NUM_OF_PACKETS);
 
     for (sender, receiver) in event_nodes {
         let initial_packet = generate_packet_default_message(sender, receiver, 1);
-        let initial_event = Box::new(PropagateEvent {
+        let initial_event = Box::new(PacketGenerationEvent {
             packet: initial_packet,
-            receiving_node: sender, // give sender the initial packet
         });
         network.simulator.put_event(initial_event, 1.0);
     }

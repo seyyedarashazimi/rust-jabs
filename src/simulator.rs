@@ -1,14 +1,16 @@
+//! A discrete time event-based simulator with event queue.
+
 pub mod event;
 pub mod rand;
 pub mod scheduled_event;
 
-pub use self::scheduled_event::*;
-use crate::network::Network;
+use self::scheduled_event::ScheduledEvent;
 use crate::simulator::event::Event;
+use specs::World;
 use std::collections::BinaryHeap;
 
-/// @author arash:
-/// A discrete time event-based simulator with event queue
+/// A discrete time event-based simulator with event queue, simulation time and
+/// number of inserted event.
 #[derive(Default)]
 pub struct Simulator {
     /// The queue that contains all events which are going to be executed. This
@@ -35,7 +37,7 @@ impl Simulator {
     }
 
     /// Executes the next event in the event queue.
-    pub fn execute_next_event(&mut self, ecs: &mut Network) {
+    pub fn execute_next_event(&mut self, ecs: &mut World) {
         if let Some(mut current_scheduled_event) = self.event_queue.pop() {
             self.simulation_time = current_scheduled_event.time();
             // println!("simulation time: {}", self.simulation_time);
@@ -80,35 +82,6 @@ impl Simulator {
         self.event_queue.push(s_event);
         self.inserted_events += 1;
     }
-
-    /// Removes an event already available in the event queue. It is specially
-    /// useful for processes that are ongoing such as packet receiving process
-    /// or block mining process.
-    ///
-    /// # Arguments
-    ///
-    /// * `scheduled_event`: The  scheduled event to be removed
-    // pub fn remove_event(&mut self, scheduled_event: ScheduledEvent) {
-    //     self.event_queue.remove(&scheduled_event);
-    // }
-
-    /// Returns the simulation time that the latest event has executed.
-    ///
-    /// # Returns
-    ///
-    /// Simulation time of the latest simulated event
-    // pub fn get_simulation_time(&self) -> f64 {
-    //     self.simulation_time
-    // }
-
-    /// Returns the inserted events.
-    ///
-    /// # Returns
-    ///
-    ///  inserted events
-    // pub fn get_inserted_events(&self) -> i64 {
-    //     self.inserted_events
-    // }
 
     /// Clears the event queue from any more events. Restarts the current time
     /// of simulation to zero.

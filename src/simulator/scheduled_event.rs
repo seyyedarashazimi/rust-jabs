@@ -1,3 +1,5 @@
+//! Scheduled event to be executed in simulator.
+
 use crate::simulator::event::Event;
 use std::cmp::Ordering;
 use std::hash::{Hash, Hasher};
@@ -61,11 +63,6 @@ impl ScheduledEvent {
         }
     }
 
-    /// Returns the borrowed corresponding event.
-    // pub fn event(&self) -> Box<dyn Event> {
-    //     self.event.clone()
-    // }
-
     /// Returns the execution time of the event.
     pub fn time(&self) -> f64 {
         self.time
@@ -74,58 +71,5 @@ impl ScheduledEvent {
     /// Returns the event ID.
     pub fn number(&self) -> i64 {
         self.number
-    }
-
-    pub fn add_key(self) -> (Self, ScheduledEventKey) {
-        let key = (&self).into();
-        (self, key)
-    }
-}
-
-/// The scheduled event key used for PriorityQueue.
-#[derive(Debug)]
-pub struct ScheduledEventKey {
-    /// Simulation execution time of the event
-    time: f64,
-    /// Event ID (insertion number in event queue)
-    number: i64,
-}
-
-impl From<&ScheduledEvent> for ScheduledEventKey {
-    fn from(scheduled_event: &ScheduledEvent) -> Self {
-        Self {
-            time: scheduled_event.time,
-            number: scheduled_event.number,
-        }
-    }
-}
-
-impl PartialEq for ScheduledEventKey {
-    fn eq(&self, other: &Self) -> bool {
-        (self.number == other.number) && (self.time == other.time)
-    }
-}
-
-impl Eq for ScheduledEventKey {}
-
-impl PartialOrd for ScheduledEventKey {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-/// This trait implementation is used by the priority queue to sort the
-/// scheduled events. It first sorts the event such the event which has min time
-/// will receive the most priority. If two events have equal execution time,
-/// then their id number decides who executes first, by giving priority to the
-/// one which is added sooner to the queue (less id number).
-impl Ord for ScheduledEventKey {
-    fn cmp(&self, other: &Self) -> Ordering {
-        match self.time {
-            x if x < other.time => Ordering::Greater,
-            x if x > other.time => Ordering::Less,
-            x if x == other.time => other.number.cmp(&self.number),
-            _ => Ordering::Equal,
-        }
     }
 }
