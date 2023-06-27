@@ -12,7 +12,7 @@ pub struct PacketGenerationEvent {
 }
 
 impl Event for PacketGenerationEvent {
-    fn execute(&mut self, ecs: &mut Network, simulator: &mut Simulator, packets: &Vec<Packet>) {
+    fn execute(&mut self, ecs: &mut Network, simulator: &mut Simulator, packets: &[Packet]) {
         let node = self.node;
 
         if !node_is_connected(ecs, node) {
@@ -28,7 +28,7 @@ impl PacketGenerationEvent {
         Self { packet_index, node }
     }
 
-    fn initialize(&self, ecs: &mut Network, simulator: &mut Simulator, packets: &Vec<Packet>) {
+    fn initialize(&self, ecs: &mut Network, simulator: &mut Simulator, packets: &[Packet]) {
         let node = self.node;
         let index = self.packet_index;
 

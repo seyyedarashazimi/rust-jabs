@@ -38,7 +38,7 @@ impl Simulator {
     }
 
     /// Executes the next event in the event queue.
-    pub fn execute_next_event(&mut self, ecs: &mut Network, packets: &Vec<Packet>) {
+    pub fn execute_next_event(&mut self, ecs: &mut Network, packets: &[Packet]) {
         if let Some(mut current_scheduled_event) = self.event_queue.pop() {
             self.simulation_time = current_scheduled_event.time();
             // println!("simulation time: {}", self.simulation_time);

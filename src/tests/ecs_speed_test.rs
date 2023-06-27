@@ -31,9 +31,9 @@ pub fn ecs_test() {
     let event_nodes = random_nodes_tx_rx(&mut nodes, NUM_OF_PACKETS);
 
     // for (sender, _) in event_nodes {
-    for i in 0..NUM_OF_PACKETS {
+    for (i, (sender, _)) in event_nodes.iter().enumerate() {
         state.packets.push(generate_packet_default_message(1, i));
-        let initial_event = Box::new(PacketGenerationEvent::new(i, event_nodes[i].0));
+        let initial_event = Box::new(PacketGenerationEvent::new(i, *sender));
         state.simulator.put_event(initial_event, 1.0);
     }
 
@@ -47,11 +47,8 @@ pub fn ecs_test() {
     let setup_duration = tac.duration_since(tic).as_millis();
     let propagate_duration = toc.duration_since(tac).as_millis();
 
-    println!(
-        "Total sent packets (total executed events): {}",
-        state.simulator.inserted_events
-    );
-    println!("Final simulation time: {}", state.simulator.simulation_time);
+    println!("Total Executed Events: {}", state.simulator.inserted_events);
+    println!("Final Simulation Time: {}", state.simulator.simulation_time);
     println!(
         "Setup Elapsed time: {:?}.{:?}sec.",
         setup_duration / 1000,

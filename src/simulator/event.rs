@@ -13,5 +13,5 @@ use std::fmt::Debug;
 /// To enforce `Box<dyn Event>` to have `execute()` method to be called
 ///  when popped from [`Simulator`].
 pub trait Event: Debug {
-    fn execute(&mut self, ecs: &mut Network, sim: &mut Simulator, packets: &Vec<Packet>);
+    fn execute(&mut self, ecs: &mut Network, sim: &mut Simulator, packets: &[Packet]);
 }

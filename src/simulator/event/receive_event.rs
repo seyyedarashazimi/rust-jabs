@@ -12,7 +12,7 @@ pub struct ReceiveEvent {
 }
 
 impl Event for ReceiveEvent {
-    fn execute(&mut self, ecs: &mut Network, simulator: &mut Simulator, packets: &Vec<Packet>) {
+    fn execute(&mut self, ecs: &mut Network, simulator: &mut Simulator, packets: &[Packet]) {
         let node = self.node;
         if !node_is_connected(ecs, node) {
             return;
@@ -47,12 +47,7 @@ impl ReceiveEvent {
     /// * `ecs`: Mutable reference to [`Network`];
     /// * `simulator`: Mutable reference to [`Simulator`];
     ///
-    pub fn receive_packet(
-        &self,
-        ecs: &mut Network,
-        simulator: &mut Simulator,
-        packets: &Vec<Packet>,
-    ) {
+    pub fn receive_packet(&self, ecs: &mut Network, simulator: &mut Simulator, packets: &[Packet]) {
         let node = self.node;
         let index = self.packet_index;
 
@@ -60,13 +55,11 @@ impl ReceiveEvent {
         if let Some(history_packets) = ecs.history.get_mut(node) {
             if !history_packets.received.contains(&packets[index]) {
                 packet_is_new = history_packets.received.insert(packets[index].clone());
-            } else {
-                if LOGGER_MODE {
-                    println!(
-                        "[EXIST] packet already exist in history packets at node:{:?}.",
-                        node
-                    );
-                }
+            } else if LOGGER_MODE {
+                println!(
+                    "[EXIST] packet already exist in history packets at node:{:?}.",
+                    node
+                );
             }
         }
 
