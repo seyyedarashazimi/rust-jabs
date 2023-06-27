@@ -1,17 +1,20 @@
 [package]
 name = "rust-jabs"
-version = "0.0.1"
+version = "0.0.2"
 authors = ["Seyyed Arash Azimi"]
 edition = "2021"
 
 [dependencies]
-specs = "0.19.0"
-specs-derive = "0.4.1"
-rand = "0.8.1"
+rand = "0.8.5"
+rand_distr = "0.4.3"
 
 [dev-dependencies]
 criterion = { version = "0.5.1", features = ["html_reports"] }
 
 [[bench]]
-name = "event_speed"
+name = "propagate_speed"
 harness = false
+
+#[[bench]]
+#name = "event_speed"
+#harness = false

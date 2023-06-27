@@ -1,16 +1,20 @@
 use crate::simulator::event::Event;
 use crate::simulator::Simulator;
+use specs::{World, WorldExt};
 
 #[test]
 fn simulator_engine_test1() {
+    let mut ecs = World::new();
+    let mut sim = Simulator::new();
+
     #[derive(Debug, Clone)]
     struct MyEvent {
         message: String,
     }
 
     impl Event for MyEvent {
-        fn execute(&self) {
-            println!("{}", self.message);
+        fn execute(&mut self, _ecs: &mut World, _sim: &mut Simulator) {
+            // println!("{}", self.message);
         }
     }
 
@@ -19,8 +23,6 @@ fn simulator_engine_test1() {
             Self { message }
         }
     }
-
-    let mut sim = Simulator::new();
 
     // Defining events with arbitrary time differences
     let no_of_events = 3;
@@ -37,7 +39,7 @@ fn simulator_engine_test1() {
         .collect();
 
     let events: Vec<_> = (0..no_of_events)
-        .map(|i| MyEvent::new(messages[i].clone()))
+        .map(|i| Box::new(MyEvent::new(messages[i].clone())))
         .collect();
 
     // Add events into the simulator queue.
@@ -50,42 +52,50 @@ fn simulator_engine_test1() {
     sorted_time_diff.sort_by(|a, b| a.partial_cmp(b).unwrap());
     let mut ctr = 0;
     while sim.is_there_more_events() {
-        sim.execute_next_event();
-        assert_eq!(sim.get_simulation_time(), sorted_time_diff[ctr]);
+        sim.execute_next_event(&mut ecs);
+        assert_eq!(sim.simulation_time, sorted_time_diff[ctr]);
         ctr += 1;
     }
 
     // reset test
     sim.reset();
-    assert_eq!(sim.get_simulation_time(), 0.0_f64);
+    assert_eq!(sim.simulation_time, 0.0_f64);
 
     // another scenario:
-    println!();
-    println!("-------------");
-    println!("new scenario:");
-    println!("-------------");
+    // println!();
+    // println!("-------------");
+    // println!("new scenario:");
+    // println!("-------------");
     sim.put_event(
-        MyEvent::new(String::from("event 1, added at=0, diff time=31")),
+        Box::new(MyEvent::new(String::from(
+            "event 1, added at=0, diff time=31",
+        ))),
         31.0_f64,
     );
     sim.put_event(
-        MyEvent::new(String::from("event 2, added at=0, diff time=9")),
+        Box::new(MyEvent::new(String::from(
+            "event 2, added at=0, diff time=9",
+        ))),
         9.0_f64,
     );
-    sim.execute_next_event();
-    assert_eq!(sim.get_simulation_time(), 9.0_f64);
+    sim.execute_next_event(&mut ecs);
+    assert_eq!(sim.simulation_time, 9.0_f64);
     sim.put_event(
-        MyEvent::new(String::from("event 3, added at=9, diff time=10")),
+        Box::new(MyEvent::new(String::from(
+            "event 3, added at=9, diff time=10",
+        ))),
         10.0_f64,
     );
-    sim.execute_next_event();
-    assert_eq!(sim.get_simulation_time(), 19.0_f64);
+    sim.execute_next_event(&mut ecs);
+    assert_eq!(sim.simulation_time, 19.0_f64);
     sim.put_event(
-        MyEvent::new(String::from("event 4, added at=19, diff time=12")),
+        Box::new(MyEvent::new(String::from(
+            "event 4, added at=19, diff time=12",
+        ))),
         12.0_f64,
     );
-    sim.execute_next_event();
-    assert_eq!(sim.get_simulation_time(), 31.0_f64);
-    sim.execute_next_event();
-    assert_eq!(sim.get_simulation_time(), 31.0_f64);
+    sim.execute_next_event(&mut ecs);
+    assert_eq!(sim.simulation_time, 31.0_f64);
+    sim.execute_next_event(&mut ecs);
+    assert_eq!(sim.simulation_time, 31.0_f64);
 }

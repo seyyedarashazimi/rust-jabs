@@ -1,12 +1,13 @@
 //! A discrete time event-based simulator with event queue.
 
 pub mod event;
-pub mod rand;
+pub mod randomness_engine;
 pub mod scheduled_event;
 
 use self::scheduled_event::ScheduledEvent;
+use crate::network::packet::Packet;
+use crate::network::Network;
 use crate::simulator::event::Event;
-use specs::World;
 use std::collections::BinaryHeap;
 
 /// A discrete time event-based simulator with event queue, simulation time and
@@ -37,11 +38,11 @@ impl Simulator {
     }
 
     /// Executes the next event in the event queue.
-    pub fn execute_next_event(&mut self, ecs: &mut World) {
+    pub fn execute_next_event(&mut self, ecs: &mut Network, packets: &Vec<Packet>) {
         if let Some(mut current_scheduled_event) = self.event_queue.pop() {
             self.simulation_time = current_scheduled_event.time();
             // println!("simulation time: {}", self.simulation_time);
-            current_scheduled_event.event.execute(ecs, self);
+            current_scheduled_event.event.execute(ecs, self, packets);
         }
     }
 
