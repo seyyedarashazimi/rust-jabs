@@ -91,7 +91,7 @@ pub enum Country {
     Uruguay,            // 82
     Venezuela,          // 83
     Vietnam,            // 84
-    World,              // 85
+    RestOfWorld,        // 85
 }
 
 /// Average latency between countries in milliseconds.

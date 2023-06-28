@@ -1,8 +1,9 @@
 //! Generation event where a new packet is made and propagated to its neighbors.
 
 use super::{send_event::SendEvent, Event};
+use crate::network::node::connection::node_is_connected;
 use crate::network::packet::Packet;
-use crate::network::{node_is_connected, Network, LOGGER_MODE};
+use crate::network::{Network, LOGGER_MODE};
 use crate::simulator::randomness_engine::RandomnessEngine;
 use crate::simulator::Simulator;
 

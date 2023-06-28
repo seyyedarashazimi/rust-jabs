@@ -1,4 +1,8 @@
-use crate::network::*;
+use crate::network::node::connection::set_all_nodes_connected;
+use crate::network::node::neighbors::assign_random_neighbors;
+use crate::network::packet::generate_packet_default_message;
+use crate::network::stats::assign_random_countries;
+use crate::network::{simulate_propagation, Network, NetworkState, LOGGER_MODE};
 use crate::simulator::event::packet_generation_event::PacketGenerationEvent;
 use crate::simulator::randomness_engine::RandomnessEngine;
 use crate::simulator::Simulator;
@@ -26,39 +30,12 @@ pub fn ecs_test() {
         NUM_OF_NODES,
     );
 
-    create_nodes_connected_with_neighbors(
+    set_all_nodes_connected(&mut state.ecs, NUM_OF_NODES);
+    assign_random_neighbors(
         &mut state.ecs,
         &mut state.randomness_engine,
-        NUM_OF_NODES,
         NUM_OF_NEIGHBORS,
     );
-
-    let max_neighbor_size = state
-        .ecs
-        .neighbors
-        .iter()
-        .map(|n| n.list.len())
-        .max()
-        .unwrap_or(0);
-
-    let min_neighbor_size = state
-        .ecs
-        .neighbors
-        .iter()
-        .map(|n| n.list.len())
-        .min()
-        .unwrap_or(0);
-
-    println!(
-        "min and max size of neighbors: {}, {}",
-        min_neighbor_size, max_neighbor_size
-    );
-    println!(
-        "all neighbors bidirectional: {}",
-        is_neighbors_bidirectional(&state.ecs.neighbors)
-    );
-
-    // set_bandwidth_constant(&mut network.ecs, 2, 3);
 
     // set sender and receiver nodes:
     let nodes: Vec<usize> = (0..NUM_OF_NODES).collect();
@@ -76,7 +53,7 @@ pub fn ecs_test() {
     }
 
     let tac = Instant::now();
-    simulation_packet_transfer(
+    simulate_propagation(
         &mut state.ecs,
         &mut state.simulator,
         &mut state.randomness_engine,
@@ -96,8 +73,4 @@ pub fn ecs_test() {
         "Propagation Elapsed time: {:.3}sec.",
         (propagate_duration as f64) / 1000.0
     );
-
-    // println!("{:?}", initial_packet);
-
-    // print_world(&network.ecs);
 }

@@ -2,6 +2,10 @@
 use crate::network::packet::Packet;
 use std::collections::HashSet;
 
+pub mod connection;
+pub mod link;
+pub mod neighbors;
+
 //----------Components----------//
 
 /// Name of each node.

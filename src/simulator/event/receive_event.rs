@@ -1,5 +1,7 @@
+use crate::network::node::connection::node_is_connected;
+use crate::network::node::link::remaining_time_to_load;
 use crate::network::packet::Packet;
-use crate::network::{node_is_connected, remaining_time_to_load, Network, LOGGER_MODE};
+use crate::network::{Network, LOGGER_MODE};
 use crate::simulator::event::send_event::SendEvent;
 use crate::simulator::event::Event;
 use crate::simulator::randomness_engine::RandomnessEngine;
