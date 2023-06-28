@@ -15,7 +15,7 @@ pub fn ecs_test() {
     const NUM_OF_NODES: usize = 6000;
     const NUM_OF_NEIGHBORS: usize = 8;
 
-    const SEED: u64 = 0;
+    const SEED: u64 = 12345;
 
     let mut state = NetworkState {
         ecs: Network::create_with_size(NUM_OF_NODES),

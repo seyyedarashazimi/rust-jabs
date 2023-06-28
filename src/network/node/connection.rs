@@ -44,7 +44,8 @@ fn disconnect_node(ecs: &mut Network, node: usize) -> Result<(), String> {
 /// # Examples
 ///
 /// ```
-/// use rust_jabs::network::{Network, node_is_connected};
+/// use rust_jabs::network::Network;
+/// use rust_jabs::network::node::connection::node_is_connected;
 /// let mut network = Network::create_with_size(1);
 /// network.is_connected[0] = true;
 ///
