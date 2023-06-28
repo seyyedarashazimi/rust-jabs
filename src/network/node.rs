@@ -7,7 +7,7 @@ use std::collections::HashSet;
 /// Name of each node.
 #[derive(Default, Debug, Clone)]
 pub struct NodeName {
-    name: String,
+    _name: String,
 }
 
 /// Type of each node.(WIP)
@@ -17,7 +17,7 @@ pub struct NodeType;
 /// Vector of indices denoting the neighbors of a node.
 #[derive(Default, Debug, Clone)]
 pub struct Neighbors {
-    pub neighbors: Vec<usize>,
+    pub list: Vec<usize>,
 }
 
 /// Connection status of each node.

@@ -7,11 +7,18 @@ mod send_event;
 use self::receive_event::ReceiveEvent;
 use crate::network::packet::Packet;
 use crate::network::Network;
+use crate::simulator::randomness_engine::RandomnessEngine;
 use crate::simulator::Simulator;
 use std::fmt::Debug;
 
 /// To enforce `Box<dyn Event>` to have `execute()` method to be called
 ///  when popped from [`Simulator`].
 pub trait Event: Debug {
-    fn execute(&mut self, ecs: &mut Network, sim: &mut Simulator, packets: &[Packet]);
+    fn execute(
+        &mut self,
+        ecs: &mut Network,
+        sim: &mut Simulator,
+        rand: &mut RandomnessEngine,
+        packets: &[Packet],
+    );
 }

@@ -3,6 +3,7 @@
 use super::{send_event::SendEvent, Event};
 use crate::network::packet::Packet;
 use crate::network::{node_is_connected, Network, LOGGER_MODE};
+use crate::simulator::randomness_engine::RandomnessEngine;
 use crate::simulator::Simulator;
 
 #[derive(Debug, Clone)]
@@ -12,7 +13,13 @@ pub struct PacketGenerationEvent {
 }
 
 impl Event for PacketGenerationEvent {
-    fn execute(&mut self, ecs: &mut Network, simulator: &mut Simulator, packets: &[Packet]) {
+    fn execute(
+        &mut self,
+        ecs: &mut Network,
+        simulator: &mut Simulator,
+        _rand: &mut RandomnessEngine,
+        packets: &[Packet],
+    ) {
         let node = self.node;
 
         if !node_is_connected(ecs, node) {
@@ -28,6 +35,14 @@ impl PacketGenerationEvent {
         Self { packet_index, node }
     }
 
+    /// Create a `SendEvent` for the node as well as archiving it for itself.
+    ///
+    /// # Arguments
+    ///
+    /// * `ecs`: Mutable reference to [`Network`];
+    /// * `simulator`: Mutable reference to [`Simulator`];
+    /// * `packets`: Immutable reference to `packets`.
+    ///
     fn initialize(&self, ecs: &mut Network, simulator: &mut Simulator, packets: &[Packet]) {
         let node = self.node;
         let index = self.packet_index;

@@ -8,6 +8,7 @@ use self::scheduled_event::ScheduledEvent;
 use crate::network::packet::Packet;
 use crate::network::Network;
 use crate::simulator::event::Event;
+use crate::simulator::randomness_engine::RandomnessEngine;
 use std::collections::BinaryHeap;
 
 /// A discrete time event-based simulator with event queue, simulation time and
@@ -38,11 +39,18 @@ impl Simulator {
     }
 
     /// Executes the next event in the event queue.
-    pub fn execute_next_event(&mut self, ecs: &mut Network, packets: &[Packet]) {
+    pub fn execute_next_event(
+        &mut self,
+        ecs: &mut Network,
+        rand: &mut RandomnessEngine,
+        packets: &[Packet],
+    ) {
         if let Some(mut current_scheduled_event) = self.event_queue.pop() {
             self.simulation_time = current_scheduled_event.time();
             // println!("simulation time: {}", self.simulation_time);
-            current_scheduled_event.event.execute(ecs, self, packets);
+            current_scheduled_event
+                .event
+                .execute(ecs, self, rand, packets);
         }
     }
 

@@ -2,6 +2,7 @@ use crate::network::packet::Packet;
 use crate::network::{node_is_connected, remaining_time_to_load, Network, LOGGER_MODE};
 use crate::simulator::event::send_event::SendEvent;
 use crate::simulator::event::Event;
+use crate::simulator::randomness_engine::RandomnessEngine;
 use crate::simulator::Simulator;
 
 #[derive(Debug)]
@@ -12,7 +13,13 @@ pub struct ReceiveEvent {
 }
 
 impl Event for ReceiveEvent {
-    fn execute(&mut self, ecs: &mut Network, simulator: &mut Simulator, packets: &[Packet]) {
+    fn execute(
+        &mut self,
+        ecs: &mut Network,
+        simulator: &mut Simulator,
+        _rand: &mut RandomnessEngine,
+        packets: &[Packet],
+    ) {
         let node = self.node;
         if !node_is_connected(ecs, node) {
             return;
@@ -38,14 +45,14 @@ impl ReceiveEvent {
         }
     }
 
-    /// For each neighbor connected to a node, create a ['ReceiveEvent'] and
-    /// push into the simulator. It will avoid forwarding the packet to the node
-    /// `self.from` which had sent the packet to this node.
+    /// Archive the received packet in history events.
+    /// If the packet is new, create a `SendEvent` for the node.
     ///
     /// # Arguments
     ///
     /// * `ecs`: Mutable reference to [`Network`];
     /// * `simulator`: Mutable reference to [`Simulator`];
+    /// * `packets`: Immutable reference to `packets`.
     ///
     pub fn receive_packet(&self, ecs: &mut Network, simulator: &mut Simulator, packets: &[Packet]) {
         let node = self.node;

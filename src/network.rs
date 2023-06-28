@@ -3,14 +3,19 @@
 //! Network is created based on
 //! [Entity-Component-System](https://en.wikipedia.org/wiki/Entity_component_system)
 //! design pattern.
-#![allow(unused)]
+// #![allow(unused)]
 
 pub mod node;
 pub mod packet;
-mod stats;
+pub mod stats;
 
-use crate::network::node::*;
-use crate::network::packet::Packet;
+use self::node::*;
+use self::packet::Packet;
+use self::stats::eighty_six_countries::sample_random_country;
+use self::stats::eighty_six_countries::Country::{self, *};
+use crate::network::stats::eighty_six_countries::{
+    sample_download_bandwidth, sample_upload_bandwidth,
+};
 use crate::simulator::randomness_engine::RandomnessEngine;
 use crate::simulator::Simulator;
 
@@ -41,6 +46,7 @@ pub struct Network {
     pub history: Vec<HistoryPackets>,
     pub uplink: Vec<Uplink>,
     pub downlink: Vec<Downlink>,
+    pub country: Vec<Country>,
     // entities:
     pub num_of_nodes: usize,
     // node: Vec<usize>,
@@ -54,6 +60,7 @@ impl Network {
         let history: Vec<HistoryPackets> = vec![HistoryPackets::default(); num_of_nodes];
         let uplink: Vec<Uplink> = vec![Uplink::default(); num_of_nodes];
         let downlink: Vec<Downlink> = vec![Downlink::default(); num_of_nodes];
+        let country: Vec<Country> = vec![Albania; num_of_nodes];
         Self {
             node_name,
             is_connected,
@@ -62,6 +69,7 @@ impl Network {
             num_of_nodes,
             uplink,
             downlink,
+            country,
         }
     }
 }
@@ -74,6 +82,7 @@ impl Network {
 ///
 /// * `ecs`: Mutable reference to a `Network` type;
 /// * `node`: a give node `usize`.
+#[allow(unused)]
 fn connect_node(ecs: &mut Network, node: usize) -> Result<(), String> {
     if let Some(status) = ecs.is_connected.get_mut(node) {
         *status = true;
@@ -88,6 +97,7 @@ fn connect_node(ecs: &mut Network, node: usize) -> Result<(), String> {
 ///
 /// * `ecs`: Mutable reference to a `Network` type;
 /// * `node`: a give node `usize`.
+#[allow(unused)]
 fn disconnect_node(ecs: &mut Network, node: usize) -> Result<(), String> {
     if let Some(status) = ecs.is_connected.get_mut(node) {
         *status = false;
@@ -122,49 +132,43 @@ pub fn node_is_connected(ecs: &Network, node: usize) -> bool {
     ecs.is_connected.get(node).map_or(false, |&status| status)
 }
 
-fn assign_random_neighbors(ecs: &mut Network, min_neighbors: usize, max_neighbors: usize) {
-    use rand::seq::SliceRandom;
-    use rand::Rng;
-
-    let mut rng = rand::thread_rng(); // Create a random number generator
-    let nodes: Vec<usize> = (0..ecs.num_of_nodes).collect();
-
-    for node in nodes.iter() {
-        let num_neighbors = rng.gen_range(min_neighbors..=max_neighbors); // Generate a random number between min and max
-
-        let other_nodes: Vec<&usize> = nodes
-            .iter()
-            .filter(|&&neighbors| neighbors != *node) // remove itself from neighbors
+fn assign_random_neighbors(ecs: &mut Network, rand: &mut RandomnessEngine, min_neighbors: usize) {
+    for node in 0..ecs.num_of_nodes {
+        let num_neighbors = min_neighbors;
+        let other_nodes: Vec<usize> = (0..ecs.num_of_nodes)
+            .filter(|&neighbors| neighbors != node) // remove itself from neighbors
             .collect();
 
         // Generate a random subset of other nodes to be neighbors
-        let neighbors: Vec<usize> = other_nodes
-            .choose_multiple(&mut rng, num_neighbors)
-            .cloned()
-            .cloned()
-            .collect();
+        let node_neighbors = rand.sample_nodes(&other_nodes, num_neighbors);
 
-        assert!(min_neighbors <= neighbors.len() && max_neighbors >= neighbors.len());
+        // Add the node to the list of its neighbors
+        for &n in &node_neighbors {
+            ecs.neighbors[n].list.push(node);
+        }
 
         // Insert the Neighbors component to the node
         *ecs.neighbors
-            .get_mut(*node)
-            .expect("Failed to insert neighbors") = Neighbors { neighbors };
+            .get_mut(node)
+            .expect("Failed to insert neighbors") = Neighbors {
+            list: node_neighbors,
+        }
     }
 }
 
-pub fn set_all_nodes_connected(ecs: &mut Network) {
-    ecs.is_connected.iter_mut().for_each(|mut x| *x = true);
+pub fn set_all_nodes_connected(ecs: &mut Network, size: usize) {
+    assert_eq!(ecs.is_connected.len(), size);
+    ecs.is_connected.iter_mut().for_each(|x| *x = true);
 }
 
 pub fn create_nodes_connected_with_neighbors(
     ecs: &mut Network,
+    rand: &mut RandomnessEngine,
     num_of_nodes: usize,
     min_neighbors: usize,
-    max_neighbors: usize,
 ) {
-    set_all_nodes_connected(ecs);
-    assign_random_neighbors(ecs, min_neighbors, max_neighbors);
+    set_all_nodes_connected(ecs, num_of_nodes);
+    assign_random_neighbors(ecs, rand, min_neighbors);
 }
 
 pub fn generate_packet_default_message(size: u64, ctr: usize) -> Packet {
@@ -177,13 +181,15 @@ pub fn generate_packet_default_message(size: u64, ctr: usize) -> Packet {
 pub fn simulation_packet_transfer(
     ecs: &mut Network,
     simulator: &mut Simulator,
-    packets: &Vec<Packet>,
+    rand: &mut RandomnessEngine,
+    packets: &[Packet],
 ) {
     while simulator.is_there_more_events() {
-        simulator.execute_next_event(ecs, packets);
+        simulator.execute_next_event(ecs, rand, packets);
     }
 }
 
+#[allow(unused)]
 pub fn random_nodes_tx_rx(nodes: &mut Vec<usize>, count: usize) -> Vec<(usize, usize)> {
     use rand::seq::SliceRandom;
 
@@ -212,6 +218,38 @@ pub fn remaining_time_to_load(link: &mut Link, simulator: &Simulator, size: u64)
     let end_time = start_time + loading_time;
     link.latest_loaded_time_done = end_time;
     end_time - simulator.simulation_time
+}
+
+pub fn assign_random_countries(country: &mut [Country], rand: &mut RandomnessEngine, size: usize) {
+    assert_eq!(country.len(), size);
+    for c in country.iter_mut() {
+        *c = sample_random_country(rand);
+    }
+}
+
+pub fn assign_all_bandwidths(
+    uplink: &mut [Uplink],
+    downlink: &mut [Downlink],
+    country: &[Country],
+    rand: &mut RandomnessEngine,
+    size: usize,
+) {
+    assert_eq!(uplink.len(), size);
+    assert_eq!(downlink.len(), size);
+    for i in 0..size {
+        uplink[i].link.bandwidth = sample_upload_bandwidth(country[i], rand);
+        downlink[i].link.bandwidth = sample_download_bandwidth(country[i], rand);
+    }
+}
+
+pub fn is_neighbors_bidirectional(neighbors: &[Neighbors]) -> bool {
+    neighbors
+        .iter()
+        .enumerate()
+        .zip(neighbors.iter().enumerate())
+        .all(|((node1, neighbors1), (node2, neighbors2))| {
+            neighbors1.list.contains(&node2) == neighbors2.list.contains(&node1)
+        })
 }
 
 // #[cfg(test)]

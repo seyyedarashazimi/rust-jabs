@@ -1,94 +1,97 @@
 use crate::simulator::randomness_engine::RandomnessEngine;
+use strum_macros::FromRepr;
 
-#[derive(Copy, Clone, Debug)]
+const NUM_OF_COUNTRIES: usize = 86;
+
+#[derive(Copy, Clone, Debug, FromRepr)]
 #[repr(usize)] // represents the enum variants as usize (needed for indexing)
 pub enum Country {
-    Albania,
-    Algeria,
-    Argentina,
-    Australia,
-    Austria,
-    Bangladesh,
-    Belgium,
-    Brazil,
-    Bulgaria,
-    Cambodia,
-    Canada,
-    Chile,
-    China,
-    Colombia,
-    CostaRica,
-    Croatia,
-    Cyprus,
-    CzechRepublic,
-    Denmark,
-    Estonia,
-    Finland,
-    France,
-    Georgia,
-    Germany,
-    Ghana,
-    Greece,
-    Guatemala,
-    Honduras,
-    HongKong,
-    Hungary,
-    India,
-    Indonesia,
-    Iran,
-    Ireland,
-    Israel,
-    Italy,
-    Japan,
-    Kazakhstan,
-    Kenya,
-    Kosovo,
-    Latvia,
-    Lebanon,
-    Lithuania,
-    Luxembourg,
-    Malaysia,
-    Malta,
-    Mexico,
-    Moldova,
-    Morocco,
-    Netherlands,
-    NewZealand,
-    Nigeria,
-    Norway,
-    Pakistan,
-    Panama,
-    Peru,
-    Philippines,
-    Poland,
-    Portugal,
-    Romania,
-    Russia,
-    SaudiArabia,
-    Serbia,
-    Singapore,
-    Slovakia,
-    Slovenia,
-    SouthAfrica,
-    SouthKorea,
-    Spain,
-    Suriname,
-    Sweden,
-    Switzerland,
-    Taiwan,
-    Tanzania,
-    Thailand,
-    Tunisia,
-    Turkey,
-    Uganda,
-    Ukraine,
-    UnitedArabEmirates,
-    UnitedKingdom,
-    UnitedStates,
-    Uruguay,
-    Venezuela,
-    Vietnam,
-    World,
+    Albania,            // 0
+    Algeria,            // 1
+    Argentina,          // 2
+    Australia,          // 3
+    Austria,            // 4
+    Bangladesh,         // 5
+    Belgium,            // 6
+    Brazil,             // 7
+    Bulgaria,           // 8
+    Cambodia,           // 9
+    Canada,             // 10
+    Chile,              // 11
+    China,              // 12
+    Colombia,           // 13
+    CostaRica,          // 14
+    Croatia,            // 15
+    Cyprus,             // 16
+    CzechRepublic,      // 17
+    Denmark,            // 18
+    Estonia,            // 19
+    Finland,            // 20
+    France,             // 21
+    Georgia,            // 22
+    Germany,            // 23
+    Ghana,              // 24
+    Greece,             // 25
+    Guatemala,          // 26
+    Honduras,           // 27
+    HongKong,           // 28
+    Hungary,            // 29
+    India,              // 30
+    Indonesia,          // 31
+    Iran,               // 32
+    Ireland,            // 33
+    Israel,             // 34
+    Italy,              // 35
+    Japan,              // 36
+    Kazakhstan,         // 37
+    Kenya,              // 38
+    Kosovo,             // 39
+    Latvia,             // 40
+    Lebanon,            // 41
+    Lithuania,          // 42
+    Luxembourg,         // 43
+    Malaysia,           // 44
+    Malta,              // 45
+    Mexico,             // 46
+    Moldova,            // 47
+    Morocco,            // 48
+    Netherlands,        // 49
+    NewZealand,         // 50
+    Nigeria,            // 51
+    Norway,             // 52
+    Pakistan,           // 53
+    Panama,             // 54
+    Peru,               // 55
+    Philippines,        // 56
+    Poland,             // 57
+    Portugal,           // 58
+    Romania,            // 59
+    Russia,             // 60
+    SaudiArabia,        // 61
+    Serbia,             // 62
+    Singapore,          // 63
+    Slovakia,           // 64
+    Slovenia,           // 65
+    SouthAfrica,        // 66
+    SouthKorea,         // 67
+    Spain,              // 68
+    Suriname,           // 69
+    Sweden,             // 70
+    Switzerland,        // 71
+    Taiwan,             // 72
+    Tanzania,           // 73
+    Thailand,           // 74
+    Tunisia,            // 75
+    Turkey,             // 76
+    Uganda,             // 77
+    Ukraine,            // 78
+    UnitedArabEmirates, // 79
+    UnitedKingdom,      // 80
+    UnitedStates,       // 81
+    Uruguay,            // 82
+    Venezuela,          // 83
+    Vietnam,            // 84
+    World,              // 85
 }
 
 /// Average latency between countries in milliseconds.
@@ -613,7 +616,7 @@ const GLOBAL_LATENCY_BY_REGION: [[f64; 91]; 91] = [
         22.53, 78.39, 30.22, 96.75, 63.78, 125.31, 14.4, 44.17, 92.97, 104.47, 68.034, 31.38,
         35.15, 47.93, 30.02, 134.49, 53.24, 112.94, 36.49, 30.88, 50.99, 25.68, 26.67, 135.75,
         37.86, 88.42, 11.12, 56.44, 23.02, 164.81, 144.13, 32.97, 111.55, 96.06, 115.3, 155.3,
-        23.39, 43.39, 0.0, 6.6, 45.63, 57.2, 21.85, 97.92, 14.47, 16.85, 103.3, 157.46, 37.18,
+        23.39, 43.39, 30.78, 6.6, 45.63, 57.2, 21.85, 97.92, 14.47, 16.85, 103.3, 157.46, 37.18,
         110.68, 32.91, 25.06, 160.31, 74.89, 134.11, 42.59, 36.14, 106.05, 26.42, 66.43, 29.93,
         77.52, 145.9, 93.74, 135.07, 68.85,
     ],
@@ -733,10 +736,10 @@ const GLOBAL_LATENCY_BY_REGION: [[f64; 91]; 91] = [
         142.01, 43.51, 37.25, 71.84, 85.47, 73.78, 68.33, 48.82, 90.93, 75.22, 71.45, 66.61,
         102.44, 63.51, 104.33, 87.27, 41.66, 20.94, 120.63, 77.51, 71.97, 129.36, 144.84, 104.694,
         61.94, 62.28, 86.24, 70.21, 109.97, 104.09, 142.74, 76.86, 72.77, 82.97, 78.63, 61.72,
-        130.34, 75.93, 45.97, 0.0, 87.58, 62.84, 124.0, 147.37, 71.17, 143.2, 51.61, 59.18, 122.85,
-        74.62, 70.6, 11.12, 84.05, 94.2, 101.51, 70.33, 146.73, 68.58, 72.81, 135.95, 110.71,
-        59.23, 64.28, 76.79, 64.8, 140.24, 123.13, 141.01, 77.13, 83.29, 150.3, 81.11, 109.61,
-        58.16, 33.05, 101.53, 51.12, 141.65, 85.86,
+        130.34, 75.93, 45.97, 30.75, 87.58, 62.84, 124.0, 147.37, 71.17, 143.2, 51.61, 59.18,
+        122.85, 74.62, 70.6, 11.12, 84.05, 94.2, 101.51, 70.33, 146.73, 68.58, 72.81, 135.95,
+        110.71, 59.23, 64.28, 76.79, 64.8, 140.24, 123.13, 141.01, 77.13, 83.29, 150.3, 81.11,
+        109.61, 58.16, 33.05, 101.53, 51.12, 141.65, 85.86,
     ],
     [
         22.08, 33.32, 131.76, 158.04, 20.79, 100.47, 20.17, 115.82, 12.45, 119.87, 78.73, 123.84,
@@ -1011,7 +1014,7 @@ const GLOBAL_LATENCY_BY_REGION: [[f64; 91]; 91] = [
 ];
 
 /// Median download bandwidth of each country in megabytes per second MBps.
-pub const DOWNLOAD_BANDWIDTH_AVERAGE: [f64; 86] = [
+pub const DOWNLOAD_BANDWIDTH_AVERAGE: [f64; NUM_OF_COUNTRIES] = [
     56.68, 11.04, 69.85, 79.47, 108.29, 48.79, 135.63, 141.49, 100.33, 31.23, 202.95, 260.92,
     237.96, 101.46, 70.33, 93.92, 66.99, 103.19, 243.01, 94.46, 161.12, 242.44, 28.09, 146.78,
     53.61, 45.14, 32.22, 32.28, 271.31, 223.04, 70.86, 31.96, 22.67, 135.2, 189.58, 124.97, 217.85,
@@ -1023,7 +1026,7 @@ pub const DOWNLOAD_BANDWIDTH_AVERAGE: [f64; 86] = [
 pub const DOWNLOAD_BANDWIDTH_SHAPE: f64 = 1.8;
 
 /// Median upload bandwidth of each country in megabytes per second MBps.
-pub const UPLOAD_BANDWIDTH_AVERAGE: [f64; 86] = [
+pub const UPLOAD_BANDWIDTH_AVERAGE: [f64; NUM_OF_COUNTRIES] = [
     27.66, 2.15, 31.57, 24.93, 27.1, 47.59, 25.82, 81.71, 78.97, 31.9, 92.17, 204.37, 53.56, 59.96,
     38.56, 47.08, 27.08, 52.03, 172.94, 75.42, 73.58, 171.96, 29.8, 35.84, 34.56, 9.52, 10.99,
     15.85, 225.49, 110.46, 69.24, 21.11, 12.86, 35.66, 41.92, 57.69, 189.8, 59.46, 20.72, 24.13,
@@ -1036,33 +1039,41 @@ pub const UPLOAD_BANDWIDTH_SHAPE: f64 = 1.8;
 
 pub const LATENCY_PARETO_SHAPE: f64 = 5.0;
 
+#[allow(unused)]
 fn get_country_delay(sender: Country, receiver: Country) -> f64 {
     GLOBAL_LATENCY_BY_REGION[sender as usize][receiver as usize]
+}
+
+fn get_country_from_usize(index: usize) -> Country {
+    Country::from_repr(index).unwrap()
+}
+
+pub fn sample_random_country(rand: &mut RandomnessEngine) -> Country {
+    get_country_from_usize(rand.sample_usize(NUM_OF_COUNTRIES))
 }
 
 pub fn get_latency(
     from_position: Country,
     to_position: Country,
-    randomness_engine: RandomnessEngine,
+    randomness_engine: &mut RandomnessEngine,
 ) -> f64 {
     let mean: f64 = GLOBAL_LATENCY_BY_REGION[from_position as usize][to_position as usize];
     let scale: f64 = ((LATENCY_PARETO_SHAPE - 1.0) / LATENCY_PARETO_SHAPE) * mean;
     randomness_engine.sample_pareto_distribution(scale, LATENCY_PARETO_SHAPE) / 1000.0
 }
 
-pub fn sample_download_bandwidth() -> i64 {
-    0
+pub fn sample_download_bandwidth(region: Country, rand: &mut RandomnessEngine) -> f64 {
+    let log_normal = rand.sample_log_normal_distribution(
+        DOWNLOAD_BANDWIDTH_AVERAGE[region as usize],
+        DOWNLOAD_BANDWIDTH_SHAPE,
+    );
+    log_normal * 1_000_000.0
 }
 
-// @Override
-// public long sampleDownloadBandwidth(EightySixCountries region) {
-// return (long) randomnessEngine.sampleLogNormalDistribution(DOWNLOAD_BANDWIDTH_AVERAGE[region.getValue()],
-// DOWNLOAD_BANDWIDTH_SHAPE)*1000000;
-// }
-//
-// @Override
-// public long sampleUploadBandwidth(EightySixCountries region) {
-// return (long) randomnessEngine.sampleLogNormalDistribution(UPLOAD_BANDWIDTH_AVERAGE[region.getValue()],
-// UPLOAD_BANDWIDTH_SHAPE)*1000000;
-// }
-// }
+pub fn sample_upload_bandwidth(region: Country, rand: &mut RandomnessEngine) -> f64 {
+    let log_normal = rand.sample_log_normal_distribution(
+        UPLOAD_BANDWIDTH_AVERAGE[region as usize],
+        UPLOAD_BANDWIDTH_SHAPE,
+    );
+    log_normal * 1_000_000.0
+}
