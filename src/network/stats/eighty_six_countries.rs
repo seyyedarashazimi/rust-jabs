@@ -1,9 +1,11 @@
+pub mod bitcoin_stats;
+
 use crate::simulator::randomness_engine::RandomnessEngine;
 use strum_macros::FromRepr;
 
 const NUM_OF_COUNTRIES: usize = 86;
 
-#[derive(Copy, Clone, Debug, FromRepr)]
+#[derive(Copy, Clone, Debug, FromRepr, Default)]
 #[repr(usize)] // represents the enum variants as usize (needed for indexing)
 pub enum Country {
     Albania,            // 0
@@ -91,7 +93,8 @@ pub enum Country {
     Uruguay,            // 82
     Venezuela,          // 83
     Vietnam,            // 84
-    RestOfWorld,        // 85
+    #[default]
+    RestOfWorld, // 85
 }
 
 /// Average latency between countries in milliseconds.

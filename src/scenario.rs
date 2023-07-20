@@ -1,0 +1,1 @@
+pub mod bitcoin_global_network_scenario;

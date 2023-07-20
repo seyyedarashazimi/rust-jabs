@@ -5,7 +5,7 @@ pub mod randomness_engine;
 pub mod scheduled_event;
 
 use self::scheduled_event::ScheduledEvent;
-use crate::network::packet::Packet;
+use crate::network::resource::NetworkResource;
 use crate::network::Network;
 use crate::simulator::event::Event;
 use crate::simulator::randomness_engine::RandomnessEngine;
@@ -43,14 +43,14 @@ impl Simulator {
         &mut self,
         ecs: &mut Network,
         rand: &mut RandomnessEngine,
-        packets: &[Packet],
+        resource: &mut NetworkResource,
     ) {
         if let Some(mut current_scheduled_event) = self.event_queue.pop() {
             self.simulation_time = current_scheduled_event.time();
             // println!("simulation time: {}", self.simulation_time);
             current_scheduled_event
                 .event
-                .execute(ecs, self, rand, packets);
+                .execute(ecs, self, rand, resource);
         }
     }
 

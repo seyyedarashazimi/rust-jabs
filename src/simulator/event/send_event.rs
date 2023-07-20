@@ -1,19 +1,23 @@
 //! Propagation event where received packet  propagates further to the neighbors.
 
 use super::{Event, ReceiveEvent};
+use crate::ledger_data::block::Block;
+use crate::network::message::MessageType;
+use crate::network::message::MessageType::{DataMessage, InvMessage, RequestDataMessage};
 use crate::network::node::connection::node_is_connected;
 use crate::network::node::link::remaining_time_to_load;
-use crate::network::packet::Packet;
+use crate::network::resource::NetworkResource;
 use crate::network::stats::eighty_six_countries::get_latency;
-use crate::network::{Network, LOGGER_MODE};
+use crate::network::{Network, FULL_LOGGER_MODE, LOGGER_MODE};
 use crate::simulator::randomness_engine::RandomnessEngine;
 use crate::simulator::Simulator;
 
 #[derive(Debug, Clone)]
 pub struct SendEvent {
-    pub packet_index: usize,
+    pub block_index: usize,
     pub from: usize,
     pub node: usize,
+    pub msg_type: MessageType,
 }
 
 impl Event for SendEvent {
@@ -22,7 +26,7 @@ impl Event for SendEvent {
         ecs: &mut Network,
         simulator: &mut Simulator,
         rand: &mut RandomnessEngine,
-        packets: &[Packet],
+        resource: &mut NetworkResource,
     ) {
         let node = self.node;
 
@@ -30,16 +34,33 @@ impl Event for SendEvent {
             return;
         }
 
-        self.send_to_neighbors(ecs, simulator, rand, packets);
+        self.send(ecs, simulator, rand, &resource.blocks);
     }
 }
 
 impl SendEvent {
-    pub fn new(packet_index: usize, from: usize, node: usize) -> Self {
+    pub fn new(block_index: usize, from: usize, node: usize, msg_type: MessageType) -> Self {
         Self {
-            packet_index,
+            block_index,
             from,
             node,
+            msg_type,
+        }
+    }
+
+    fn send(
+        &self,
+        ecs: &mut Network,
+        simulator: &mut Simulator,
+        rand: &mut RandomnessEngine,
+        blocks: &[Block],
+    ) {
+        match &self.msg_type {
+            InvMessage(_) => self.send_inv_to_neighbors(ecs, simulator, rand, blocks),
+            DataMessage(_) | RequestDataMessage(_) => {
+                self.simulate_upload(ecs, simulator, rand, blocks, self.from)
+            }
+            _ => (),
         }
     }
 
@@ -53,37 +74,50 @@ impl SendEvent {
     /// * `simulator`: Mutable reference to [`Simulator`];
     /// * `packets`: Immutable reference to `packets`.
     ///
-    pub fn send_to_neighbors(
+    fn send_inv_to_neighbors(
         &self,
         ecs: &mut Network,
         simulator: &mut Simulator,
         rand: &mut RandomnessEngine,
-        packets: &[Packet],
+        blocks: &[Block],
     ) {
-        let node = self.node;
-        let index = self.packet_index;
-        if let Some(neighbors) = ecs.neighbors.get(node) {
+        if let Some(neighbors) = ecs.neighbors.get(self.node) {
             // remove the sender of the packet from the set of neighbors:
-            let filtered_neighbors = neighbors
+            let filtered_neighbors: Vec<usize> = neighbors
                 .list
                 .iter()
-                .filter(|&neighbor| *neighbor != self.from);
+                .filter(|&neighbor| *neighbor != self.from)
+                .cloned()
+                .collect();
 
             for neighbor in filtered_neighbors {
-                let forward_event = Box::new(ReceiveEvent::new(index, node, *neighbor));
-                if let Some(uplink) = ecs.uplink.get_mut(node) {
-                    let upload_delay =
-                        remaining_time_to_load(&mut uplink.link, simulator, packets[index].size);
-                    let delivery_delay =
-                        get_latency(ecs.country[node], ecs.country[*neighbor], rand);
-                    simulator.put_event(forward_event, upload_delay + delivery_delay);
-                    if LOGGER_MODE {
-                        println!(
-                            "[Send] Forwarding message from node:{:?} to node:{:?}",
-                            node, neighbor
-                        );
-                    }
-                }
+                self.simulate_upload(ecs, simulator, rand, blocks, neighbor);
+            }
+        }
+    }
+
+    fn simulate_upload(
+        &self,
+        ecs: &mut Network,
+        simulator: &mut Simulator,
+        rand: &mut RandomnessEngine,
+        blocks: &[Block],
+        to: usize,
+    ) {
+        let node = self.node;
+        let index = self.block_index;
+
+        let forward_event = Box::new(ReceiveEvent::new(index, node, to, self.msg_type.clone()));
+        if let Some(uplink) = ecs.uplink.get_mut(node) {
+            let size = self.msg_type.get_size(index, blocks);
+            let upload_delay = remaining_time_to_load(&mut uplink.link, simulator, size);
+            let delivery_delay = get_latency(ecs.country[node], ecs.country[to], rand);
+            simulator.put_event(forward_event, upload_delay + delivery_delay);
+            if LOGGER_MODE && FULL_LOGGER_MODE {
+                println!(
+                    "[Send] Forwarding message from node:{:?} to node:{:?}",
+                    node, to
+                );
             }
         }
     }

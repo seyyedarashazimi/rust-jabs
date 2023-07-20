@@ -5,8 +5,10 @@ use crate::network::stats::eighty_six_countries::{
 use crate::simulator::randomness_engine::RandomnessEngine;
 use crate::simulator::Simulator;
 
+const BITS_PER_BYTE: u64 = 8;
+
 pub fn remaining_time_to_load(link: &mut Link, simulator: &Simulator, size: u64) -> f64 {
-    let loading_time = (size as f64) / link.bandwidth;
+    let loading_time = ((size * BITS_PER_BYTE) as f64) / link.bandwidth;
     let start_time = link.latest_loaded_time_done.max(simulator.simulation_time);
     let end_time = start_time + loading_time;
     link.latest_loaded_time_done = end_time;

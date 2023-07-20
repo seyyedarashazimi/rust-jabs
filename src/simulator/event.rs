@@ -1,11 +1,11 @@
 //! Event trait including `execute()` method.
 
-pub mod packet_generation_event;
+pub mod generate_block_event;
 mod receive_event;
 mod send_event;
 
 use self::receive_event::ReceiveEvent;
-use crate::network::packet::Packet;
+use crate::network::resource::NetworkResource;
 use crate::network::Network;
 use crate::simulator::randomness_engine::RandomnessEngine;
 use crate::simulator::Simulator;
@@ -19,6 +19,6 @@ pub trait Event: Debug {
         ecs: &mut Network,
         sim: &mut Simulator,
         rand: &mut RandomnessEngine,
-        packets: &[Packet],
+        resource: &mut NetworkResource,
     );
 }

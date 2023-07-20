@@ -24,7 +24,7 @@ impl Hash for ScheduledEvent {
 
 impl PartialEq for ScheduledEvent {
     fn eq(&self, other: &Self) -> bool {
-        (self.number == other.number) && (self.time == other.time)
+        self.number.eq(&other.number) && self.time.eq(&other.time)
     }
 }
 
