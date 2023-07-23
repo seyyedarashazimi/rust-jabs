@@ -34,13 +34,17 @@ pub fn sample_bitcoin_node_countries(
     }
 }
 
-pub fn sample_bitcoin_miner_hash_power(
+pub fn reset_and_sample_all_bitcoin_miners_hash_power(
     miners: &[usize],
     hash_power: &mut [Option<f64>],
     rand: &mut RandomnessEngine,
     average_mining_block_interval: f64,
     difficulty: f64,
 ) {
+    for i in 0..hash_power.len() {
+        hash_power[i] = None;
+    }
+
     // initial sampling hash-powers
     let sampled_hash_power: Vec<f64> = (0..miners.len())
         .map(|_| BitcoinProofOfWorkGlobalNetworkStats86Countries::sample_miner_hash_power(rand))

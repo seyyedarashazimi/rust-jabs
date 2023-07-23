@@ -22,7 +22,7 @@ pub struct SendEvent {
 
 impl Event for SendEvent {
     fn execute(
-        &mut self,
+        &self,
         ecs: &mut Network,
         simulator: &mut Simulator,
         rand: &mut RandomnessEngine,

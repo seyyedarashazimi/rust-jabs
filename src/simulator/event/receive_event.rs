@@ -12,7 +12,7 @@ use crate::simulator::event::Event;
 use crate::simulator::randomness_engine::RandomnessEngine;
 use crate::simulator::Simulator;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ReceiveEvent {
     pub block_index: usize,
     pub from: usize,
@@ -22,7 +22,7 @@ pub struct ReceiveEvent {
 
 impl Event for ReceiveEvent {
     fn execute(
-        &mut self,
+        &self,
         ecs: &mut Network,
         simulator: &mut Simulator,
         _: &mut RandomnessEngine,
@@ -94,6 +94,7 @@ impl ReceiveEvent {
                     blocks,
                     consensus_config,
                     &ecs.local_block_tree[node],
+                    simulator,
                 );
                 self.simulate_download(ecs, simulator, blocks, InvMessage(IsBlock));
             }

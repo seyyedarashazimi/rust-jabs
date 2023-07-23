@@ -21,7 +21,7 @@ pub struct GenerateBlockEvent {
 
 impl Event for GenerateBlockEvent {
     fn execute(
-        &mut self,
+        &self,
         ecs: &mut Network,
         simulator: &mut Simulator,
         rand: &mut RandomnessEngine,
@@ -107,7 +107,7 @@ impl GenerateBlockEvent {
         node: usize,
     ) -> Block {
         let canonical_chain_head = consensus_algorithm.current_main_chain_head_index;
-        let weight: f64 = rand.sample_exponential_distribution(1.0);
+        let weight: f64 = rand.sample_exponential_distribution_mean_1();
         BlockFactory::sample_bitcoin_block(
             blocks,
             simulator,

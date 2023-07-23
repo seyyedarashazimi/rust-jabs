@@ -2,7 +2,7 @@ use rand::distributions::WeightedIndex;
 use rand::rngs::StdRng;
 use rand::seq::SliceRandom;
 use rand::{Rng, SeedableRng};
-use rand_distr::{Distribution, Exp, LogNormal, Pareto};
+use rand_distr::{Distribution, Exp, Exp1, LogNormal, Pareto};
 
 pub struct RandomnessEngine {
     _seed: u64,
@@ -30,8 +30,12 @@ impl RandomnessEngine {
         self.rng.gen_range(0..max)
     }
 
+    pub fn sample_exponential_distribution_mean_1(&mut self) -> f64 {
+        Exp1.sample(&mut self.rng)
+    }
+
     pub fn sample_exponential_distribution(&mut self, mean: f64) -> f64 {
-        let exponential = Exp::new(mean).unwrap();
+        let exponential = Exp::new(1.0 / mean).unwrap();
         exponential.sample(&mut self.rng)
     }
 

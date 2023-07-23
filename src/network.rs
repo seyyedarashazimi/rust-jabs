@@ -45,7 +45,6 @@ pub struct Network {
     pub node_name: Vec<Option<NodeName>>,
     pub is_connected: Vec<bool>,
     pub neighbors: Vec<Neighbors>,
-    // pub history: Vec<HistoryPackets>,
     pub uplink: Vec<Uplink>,
     pub downlink: Vec<Downlink>,
     pub country: Vec<Country>,
@@ -62,7 +61,6 @@ impl Network {
         let node_name: Vec<Option<NodeName>> = vec![None; num_of_nodes];
         let is_connected: Vec<bool> = vec![bool::default(); num_of_nodes];
         let neighbors: Vec<Neighbors> = vec![Neighbors::default(); num_of_nodes];
-        // let history: Vec<HistoryPackets> = vec![HistoryPackets::default(); num_of_nodes];
         let uplink: Vec<Uplink> = vec![Uplink::default(); num_of_nodes];
         let downlink: Vec<Downlink> = vec![Downlink::default(); num_of_nodes];
         let country: Vec<Country> = vec![Country::default(); num_of_nodes];
@@ -76,7 +74,6 @@ impl Network {
             node_name,
             is_connected,
             neighbors,
-            // history,
             num_of_nodes,
             uplink,
             downlink,

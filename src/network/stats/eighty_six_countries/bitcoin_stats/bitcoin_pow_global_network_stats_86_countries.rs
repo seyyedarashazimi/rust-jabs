@@ -24,7 +24,7 @@ const BITCOIN_HASH_POWER_DISTRIBUTION_BIN_2022: [f64; 16] = [
 
 pub const BITCOIN_NUM_MINERS_2022: usize = 30;
 
-// pub const BITCOIN_DIFFICULTY_2022: f64 = 225.0;
+pub const BITCOIN_DIFFICULTY_2022: f64 = 225.0;
 
 pub struct BitcoinProofOfWorkGlobalNetworkStats86Countries {}
 

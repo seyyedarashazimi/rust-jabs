@@ -45,7 +45,7 @@ impl Simulator {
         rand: &mut RandomnessEngine,
         resource: &mut NetworkResource,
     ) {
-        if let Some(mut current_scheduled_event) = self.event_queue.pop() {
+        if let Some(current_scheduled_event) = self.event_queue.pop() {
             self.simulation_time = current_scheduled_event.time();
             // println!("simulation time: {}", self.simulation_time);
             current_scheduled_event
@@ -54,14 +54,14 @@ impl Simulator {
         }
     }
 
-    /// Returns an immutable reference to the next event to be executed without
-    /// executing the event.
+    /// Returns a clone of the next event to be executed without executing the
+    /// event.
     ///
     /// # Returns
     ///
-    /// Immutable reference of the next event to be executed in the simulator
+    /// Clone of the next event to be executed in the simulator
     pub fn peek_event(&self) -> Option<&Box<dyn Event>> {
-        self.event_queue.peek().map(|se| &(se.event))
+        self.event_queue.peek().map(|se| &se.event)
     }
 
     /// Check if more events exist in the event queue to be simulated.

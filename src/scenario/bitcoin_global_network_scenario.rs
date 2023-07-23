@@ -1,21 +1,25 @@
+use std::path::Path;
 use std::time::{Duration, Instant};
 use crate::consensus::blockchain::local_block_tree::assign_initial_local_block_trees;
 use crate::consensus::config::nakamoto_consensus_config::NakamotoConsensusConfig;
 use crate::ledger_data::block::Block;
+use crate::log::block_confirmation_logger::BlockConfirmationLogger;
+use crate::log::Logger;
 use crate::network::resource::NetworkResource;
 use crate::network::{FULL_LOGGER_MODE, LOGGER_MODE, Network, NetworkState};
 use crate::network::node::connection::set_all_nodes_connected;
 use crate::network::node::link::assign_all_bandwidths;
 use crate::network::node::neighbors::{assign_random_neighbors, is_neighbors_bidirectional};
 use crate::network::stats::eighty_six_countries::bitcoin_stats::bitcoin_node_global_network_stats_86_countries::BITCOIN_NUM_NODES_2022;
-use crate::network::stats::eighty_six_countries::bitcoin_stats::{sample_bitcoin_miner_nodes, sample_bitcoin_node_countries};
-use crate::network::stats::eighty_six_countries::bitcoin_stats::bitcoin_pow_global_network_stats_86_countries::BITCOIN_NUM_MINERS_2022;
-use crate::simulator::event::generate_block_event::GenerateBlockEvent;
+use crate::network::stats::eighty_six_countries::bitcoin_stats::{reset_and_sample_all_bitcoin_miners_hash_power, sample_bitcoin_miner_nodes, sample_bitcoin_node_countries};
+use crate::network::stats::eighty_six_countries::bitcoin_stats::bitcoin_pow_global_network_stats_86_countries::{BITCOIN_DIFFICULTY_2022, BITCOIN_NUM_MINERS_2022};
+use crate::scenario::ScenarioData;
+use crate::simulator::event::block_mining_process::BlockMiningProcess;
 use crate::simulator::randomness_engine::RandomnessEngine;
 use crate::simulator::Simulator;
 
 //----------Functions----------//
-pub fn simulate_propagation(
+pub fn _simulate_propagation(
     ecs: &mut Network,
     simulator: &mut Simulator,
     rand: &mut RandomnessEngine,
@@ -31,11 +35,17 @@ fn simulation_stop_condition(simulator: &Simulator, stop_time: f64) -> bool {
     simulator.simulation_time > stop_time
 }
 
-pub fn run(average_block_interval: f64, confirmation_depth: i32, stop_time: f64, seed: u64) {
+pub fn run(
+    average_block_interval: f64,
+    confirmation_depth: i32,
+    stop_time: f64,
+    seed: u64,
+    name: &str,
+) -> Result<(), std::io::Error> {
     let preparation_starting_time = Instant::now();
 
-    const GENESIS_BLOCK_INDEX: usize = 0;
-    const NUM_OF_NODES: usize = BITCOIN_NUM_NODES_2022; // 7983;
+    const GENESIS_BLOCK_INDEX: usize = 0; // must be always zero.
+    const NUM_OF_NODES: usize = BITCOIN_NUM_NODES_2022 + BITCOIN_NUM_MINERS_2022; // 8013
     const NUM_OF_MINERS: usize = BITCOIN_NUM_MINERS_2022; // 30
     const NUM_OF_NEIGHBORS: usize = 8;
     const PROGRESS_LOGGER_SECONDS: u64 = 2;
@@ -43,6 +53,13 @@ pub fn run(average_block_interval: f64, confirmation_depth: i32, stop_time: f64,
     let progress_message_intervals = Duration::from_secs(PROGRESS_LOGGER_SECONDS).as_nanos();
 
     let average_num_of_blocks: usize = (stop_time / average_block_interval) as usize;
+    let difficulty: f64 = BITCOIN_DIFFICULTY_2022; // 225.0
+
+    let scenario_data = ScenarioData::new(
+        name.to_string(),
+        NUM_OF_NODES,
+        "1-day of bitcoin".to_string(),
+    );
 
     let mut state = NetworkState {
         ecs: Network::create_with_size(NUM_OF_NODES),
@@ -54,13 +71,14 @@ pub fn run(average_block_interval: f64, confirmation_depth: i32, stop_time: f64,
                 average_block_interval,
                 confirmation_depth,
                 GENESIS_BLOCK_INDEX,
+                difficulty,
             ),
             miners: Vec::with_capacity(NUM_OF_MINERS),
         },
     };
 
-    for consensus in &mut state.ecs.consensus_algorithm {
-        consensus.initial_configuration(&state.resource.config);
+    for (node_index, consensus) in &mut state.ecs.consensus_algorithm.iter_mut().enumerate() {
+        consensus.initial_configuration(&state.resource.config, node_index);
     }
 
     sample_bitcoin_miner_nodes(
@@ -94,20 +112,35 @@ pub fn run(average_block_interval: f64, confirmation_depth: i32, stop_time: f64,
         NUM_OF_NODES,
     );
 
-    let event_nodes = state
-        .randomness_engine
-        .sample_nodes(&state.resource.miners, average_num_of_blocks);
+    // let event_nodes = state
+    //     .randomness_engine
+    //     .sample_nodes(&state.resource.miners, average_num_of_blocks);
 
     // Genesis must be always the first block in the blocks. (genesis_index=0)
     state.resource.blocks.push(Block::generate_genesis_block());
 
-    let mut initial_event_timer: f64 = 0.0;
-    for miner in event_nodes {
-        let initial_event = Box::new(GenerateBlockEvent::new(miner));
-        state
-            .simulator
-            .put_event(initial_event, initial_event_timer);
-        initial_event_timer += average_block_interval;
+    let miners = state.resource.miners.clone();
+    reset_and_sample_all_bitcoin_miners_hash_power(
+        &miners,
+        &mut state.ecs.hash_power,
+        &mut state.randomness_engine,
+        average_block_interval,
+        state.resource.config.difficulty,
+    );
+    for miner in miners {
+        BlockMiningProcess::initialize_mining_event(
+            miner,
+            &mut state.ecs,
+            &mut state.simulator,
+            &mut state.randomness_engine,
+            &mut state.resource,
+        );
+
+        // let initial_event = Box::new(GenerateBlockEvent::new(miner));
+        // state
+        //     .simulator
+        //     .put_event(initial_event, initial_event_timer);
+        // initial_event_timer += average_block_interval;
     }
 
     if LOGGER_MODE && FULL_LOGGER_MODE {
@@ -121,6 +154,12 @@ pub fn run(average_block_interval: f64, confirmation_depth: i32, stop_time: f64,
         }
     }
 
+    let logger_dir = Path::new("output");
+    let mut block_confirmation_logger =
+        BlockConfirmationLogger::from_path(&logger_dir.join("bitcoin-confirmations-log.csv"))?;
+
+    block_confirmation_logger.initial_log(&scenario_data)?;
+
     // running the simulation
     eprintln!("Staring One day in the life of Bitcoin...");
     let simulation_starting_time = Instant::now();
@@ -128,11 +167,25 @@ pub fn run(average_block_interval: f64, confirmation_depth: i32, stop_time: f64,
     while state.simulator.is_there_more_events()
         && !simulation_stop_condition(&state.simulator, stop_time)
     {
+        let block_confirmation_logger_info = state.simulator.peek_event().unwrap().logger_data();
+
+        block_confirmation_logger.log_before_each_event(
+            &block_confirmation_logger_info,
+            &state.ecs,
+            &state.resource,
+        )?;
+
         state.simulator.execute_next_event(
             &mut state.ecs,
             &mut state.randomness_engine,
             &mut state.resource,
         );
+
+        block_confirmation_logger.log_after_each_event(
+            &block_confirmation_logger_info,
+            &state.ecs,
+            &state.resource,
+        )?;
 
         if Instant::now()
             .duration_since(last_progress_message_time)
@@ -156,24 +209,19 @@ pub fn run(average_block_interval: f64, confirmation_depth: i32, stop_time: f64,
             last_progress_message_time = Instant::now();
         }
     }
-    // simulate_propagation(
-    //     &mut state.ecs,
-    //     &mut state.simulator,
-    //     &mut state.randomness_engine,
-    //     &mut state.resource,
-    //     stop_time,
-    // );
     let simulation_ending_time = Instant::now();
     eprintln!("Finished One day in the life of Bitcoin.");
 
-    println!("total created blocks:{}", state.resource.blocks.len());
+    block_confirmation_logger.final_log(&scenario_data)?;
+
+    println!("Total Created Blocks: {}", state.resource.blocks.len() - 1);
+
     let setup_duration = simulation_starting_time
         .duration_since(preparation_starting_time)
         .as_millis();
     let propagate_duration = simulation_ending_time
         .duration_since(simulation_starting_time)
         .as_millis();
-
     println!("Total Executed Events: {}", state.simulator.inserted_events);
     println!("Final Simulation Time: {}", state.simulator.simulation_time);
     println!(
@@ -184,4 +232,5 @@ pub fn run(average_block_interval: f64, confirmation_depth: i32, stop_time: f64,
         "Propagation Elapsed time: {:.3}sec.",
         (propagate_duration as f64) / 1000.0
     );
+    Ok(())
 }
