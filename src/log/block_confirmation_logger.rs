@@ -1,71 +1,10 @@
-use crate::log::{CSVLogger, Logger, LoggerEventInfo};
+use crate::log::{CSVLogger, EventLoggerInfo};
 use crate::network::resource::NetworkResource;
 use crate::network::Network;
 use crate::scenario::ScenarioData;
-use csv::Writer;
-use std::fs::File;
-use std::path::Path;
 
-pub struct BlockConfirmationLogger {
-    logger_csv: Writer<File>,
-}
-
-impl BlockConfirmationLogger {
-    pub fn from_path(path: &Path) -> csv::Result<Self> {
-        let csv_logger = Writer::from_path(path)?;
-        Ok(Self {
-            logger_csv: csv_logger,
-        })
-    }
-}
-
-impl Logger for BlockConfirmationLogger {
-    fn initial_log(&mut self, scenario: &ScenarioData) -> csv::Result<()> {
-        // Write the comment as a regular record, starting with #
-        let comment = self.csv_starting_comment(scenario);
-        self.logger_csv.write_record(&comment)?;
-
-        // Write the header
-        let headers = self.csv_header_output();
-        self.logger_csv.write_record(&headers)?;
-        Ok(())
-    }
-
-    fn log_before_each_event(
-        &mut self,
-        info: &LoggerEventInfo,
-        ecs: &Network,
-        resource: &NetworkResource,
-    ) -> csv::Result<()> {
-        if self.csv_output_condition_before_event(info) {
-            self.logger_csv
-                .write_record(self.csv_event_output(info, ecs, resource))?;
-        }
-        Ok(())
-    }
-
-    fn log_after_each_event(
-        &mut self,
-        info: &LoggerEventInfo,
-        ecs: &Network,
-        resource: &NetworkResource,
-    ) -> csv::Result<()> {
-        if self.csv_output_condition_after_event(info) {
-            self.logger_csv
-                .write_record(self.csv_event_output(info, ecs, resource))?;
-        }
-        Ok(())
-    }
-
-    fn final_log(&mut self, scenario_data: &ScenarioData) -> Result<(), std::io::Error> {
-        if self.csv_output_condition_final_per_node() {
-            for node in 0..scenario_data.num_of_nodes {
-                self.logger_csv.write_record(self.csv_node_output(node))?;
-            }
-        }
-        self.logger_csv.flush()
-    }
-}
+#[derive(Default)]
+pub struct BlockConfirmationLogger;
 
 impl CSVLogger for BlockConfirmationLogger {
     fn csv_starting_comment(&self, scenario: &ScenarioData) -> Vec<String> {
@@ -79,12 +18,12 @@ impl CSVLogger for BlockConfirmationLogger {
         ]
     }
 
-    fn csv_output_condition_before_event(&self, _: &LoggerEventInfo) -> bool {
+    fn csv_output_condition_before_event(&self, _: &EventLoggerInfo) -> bool {
         false
     }
 
-    fn csv_output_condition_after_event(&self, info: &LoggerEventInfo) -> bool {
-        matches!(info, LoggerEventInfo::IsBlockConfirmationEvent(..))
+    fn csv_output_condition_after_event(&self, info: &EventLoggerInfo) -> bool {
+        matches!(info, EventLoggerInfo::IsBlockConfirmationEvent(..))
     }
 
     fn csv_output_condition_final_per_node(&self) -> bool {
@@ -105,11 +44,11 @@ impl CSVLogger for BlockConfirmationLogger {
 
     fn csv_event_output(
         &self,
-        info: &LoggerEventInfo,
+        info: &EventLoggerInfo,
         _ecs: &Network,
         resource: &NetworkResource,
     ) -> Vec<String> {
-        if let LoggerEventInfo::IsBlockConfirmationEvent(block_index, node_index, time) = info {
+        if let EventLoggerInfo::IsBlockConfirmationEvent(block_index, node_index, time) = info {
             vec![
                 time.to_string(),
                 node_index.to_string(),

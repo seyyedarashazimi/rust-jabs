@@ -4,7 +4,7 @@ use crate::consensus::blockchain::local_block_tree::assign_initial_local_block_t
 use crate::consensus::config::nakamoto_consensus_config::NakamotoConsensusConfig;
 use crate::ledger_data::block::Block;
 use crate::log::block_confirmation_logger::BlockConfirmationLogger;
-use crate::log::Logger;
+use crate::log::{EventLogger, Logger};
 use crate::network::resource::NetworkResource;
 use crate::network::{FULL_LOGGER_MODE, LOGGER_MODE, Network, NetworkState};
 use crate::network::node::connection::set_all_nodes_connected;
@@ -112,10 +112,6 @@ pub fn run(
         NUM_OF_NODES,
     );
 
-    // let event_nodes = state
-    //     .randomness_engine
-    //     .sample_nodes(&state.resource.miners, average_num_of_blocks);
-
     // Genesis must be always the first block in the blocks. (genesis_index=0)
     state.resource.blocks.push(Block::generate_genesis_block());
 
@@ -135,12 +131,6 @@ pub fn run(
             &mut state.randomness_engine,
             &mut state.resource,
         );
-
-        // let initial_event = Box::new(GenerateBlockEvent::new(miner));
-        // state
-        //     .simulator
-        //     .put_event(initial_event, initial_event_timer);
-        // initial_event_timer += average_block_interval;
     }
 
     if LOGGER_MODE && FULL_LOGGER_MODE {
@@ -155,13 +145,15 @@ pub fn run(
     }
 
     let logger_dir = Path::new("output");
-    let mut block_confirmation_logger =
-        BlockConfirmationLogger::from_path(&logger_dir.join("bitcoin-confirmations-log.csv"))?;
+    let mut block_confirmation_logger = EventLogger::from_path(
+        &logger_dir.join("bitcoin-confirmations-log.csv"),
+        BlockConfirmationLogger::default(),
+    )?;
 
     block_confirmation_logger.initial_log(&scenario_data)?;
 
     // running the simulation
-    eprintln!("Staring One day in the life of Bitcoin...");
+    eprintln!("Staring {}...", scenario_data.name);
     let simulation_starting_time = Instant::now();
     let mut last_progress_message_time = simulation_starting_time;
     while state.simulator.is_there_more_events()

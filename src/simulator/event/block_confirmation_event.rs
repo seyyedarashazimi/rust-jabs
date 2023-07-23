@@ -1,4 +1,4 @@
-use crate::log::LoggerEventInfo;
+use crate::log::EventLoggerInfo;
 use crate::simulator::event::Event;
 
 #[derive(Debug)]
@@ -19,7 +19,7 @@ impl BlockConfirmationEvent {
 }
 
 impl Event for BlockConfirmationEvent {
-    fn logger_data(&self) -> LoggerEventInfo {
-        LoggerEventInfo::IsBlockConfirmationEvent(self.block_index, self.node_index, self.time)
+    fn logger_data(&self) -> EventLoggerInfo {
+        EventLoggerInfo::IsBlockConfirmationEvent(self.block_index, self.node_index, self.time)
     }
 }

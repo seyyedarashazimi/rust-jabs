@@ -7,7 +7,7 @@ mod receive_event;
 mod send_event;
 
 use self::receive_event::ReceiveEvent;
-use crate::log::LoggerEventInfo;
+use crate::log::EventLoggerInfo;
 use crate::network::resource::NetworkResource;
 use crate::network::Network;
 use crate::simulator::randomness_engine::RandomnessEngine;
@@ -26,8 +26,8 @@ pub trait Event: Debug {
     ) {
     }
 
-    fn logger_data(&self) -> LoggerEventInfo {
-        LoggerEventInfo::default()
+    fn logger_data(&self) -> EventLoggerInfo {
+        EventLoggerInfo::default()
     }
 }
 
