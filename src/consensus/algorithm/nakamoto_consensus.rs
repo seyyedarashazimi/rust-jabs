@@ -77,11 +77,9 @@ impl NakamotoConsensus {
             {
                 self.confirmed_blocks = local_block_trees
                     .get_all_single_ancestors(highest_confirmed_block_index, blocks);
-                let current_time = simulator.simulation_time;
                 let block_confirmation_event = Box::new(BlockConfirmationEvent::new(
                     highest_confirmed_block_index,
                     self.node_index,
-                    current_time,
                 ));
                 simulator.put_event(block_confirmation_event, 0.0);
             }

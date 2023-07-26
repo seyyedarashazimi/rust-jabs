@@ -3,9 +3,15 @@ use crate::ledger_data::block::Block;
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 
-#[derive(Default, Clone, Debug)]
+#[derive(Clone, Debug)]
 pub struct LocalBlockTree {
     pub local_block_dag: HashMap<usize, LocalBlock>,
+}
+
+impl Default for LocalBlockTree {
+    fn default() -> Self {
+        LocalBlockTree::new()
+    }
 }
 
 impl LocalBlockTree {
@@ -96,6 +102,43 @@ impl LocalBlockTree {
         }
     }
 
+    /// Returns the highest common ancestor of the provided two blocks.
+    ///
+    /// # Arguments
+    ///
+    /// * `block_a`: First block index
+    /// * `block_b`: Second block
+    /// * `blocks`:
+    ///
+    /// returns: Option<usize>
+    /// The `Option` ancestor with largest height value.
+    ///
+    pub fn get_common_ancestor(&self, block_a: usize, block_b: usize, blocks: &[Block]) -> usize {
+        let mut block_x = block_a;
+        let mut block_y = block_b;
+
+        let genesis_index = 0;
+
+        if blocks[block_a].height > blocks[block_b].height {
+            block_x = self
+                .get_single_ancestor_of_height(block_a, blocks[block_b].height, blocks)
+                .unwrap_or(genesis_index);
+        } else if blocks[block_a].height < blocks[block_b].height {
+            block_y = self
+                .get_single_ancestor_of_height(block_b, blocks[block_a].height, blocks)
+                .unwrap_or(genesis_index);
+        }
+
+        loop {
+            if blocks[block_x] == blocks[block_y] {
+                return block_x;
+            } else {
+                block_x = blocks[block_x].get_single_parent().unwrap_or(genesis_index);
+                block_y = blocks[block_y].get_single_parent().unwrap_or(genesis_index);
+            }
+        }
+    }
+
     /// Returns the ancestor of the block with at certain height.
     /// Only use this method when all ancestors of the block is received.
     ///
@@ -105,7 +148,7 @@ impl LocalBlockTree {
     /// * `height`: the targeted height that the returning ancestor is expected to have
     /// * `blocks`: immutable reference to blocks
     ///
-    /// returns: the ancestor index with height equal to the input height.
+    /// returns: the `Option` ancestor index with height equal to the input height.
     ///
     pub fn get_single_ancestor_of_height(
         &self,

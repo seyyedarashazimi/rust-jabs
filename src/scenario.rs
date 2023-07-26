@@ -15,3 +15,16 @@ impl ScenarioData {
         }
     }
 }
+
+impl From<&ScenarioData> for Vec<String> {
+    fn from(value: &ScenarioData) -> Self {
+        vec![
+            "# Simulation name: ".to_string(),
+            value.name.clone(),
+            "Number of nodes: ".to_string(),
+            value.num_of_nodes.to_string(),
+            "Network type: ".to_string(),
+            value.network_type.clone(),
+        ]
+    }
+}

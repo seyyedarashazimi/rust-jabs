@@ -26,26 +26,7 @@ pub trait Event: Debug {
     ) {
     }
 
-    fn logger_data(&self) -> EventLoggerInfo {
+    fn logger_data(&self, _time: f64) -> EventLoggerInfo {
         EventLoggerInfo::default()
     }
 }
-
-// pub trait EventBoxClone {
-//     fn event_box_clone(&self) -> Box<dyn Event>;
-// }
-//
-// impl<T> EventBoxClone for T
-// where
-//     T: 'static + Event + Clone,
-// {
-//     fn event_box_clone(&self) -> Box<dyn Event> {
-//         Box::new(self.clone())
-//     }
-// }
-//
-// impl Clone for Box<dyn Event> {
-//     fn clone(&self) -> Box<dyn Event> {
-//         self.event_box_clone()
-//     }
-// }

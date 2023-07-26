@@ -1,5 +1,7 @@
 use crate::consensus::config::nakamoto_consensus_config::NakamotoConsensusConfig;
 use crate::ledger_data::block::Block;
+use crate::log::EventLoggerInfo;
+use crate::log::EventLoggerInfo::IsReceiveEvent;
 use crate::network::message::DataType::IsBlock;
 use crate::network::message::MessageType;
 use crate::network::message::MessageType::{DataMessage, InvMessage, RequestDataMessage};
@@ -11,6 +13,7 @@ use crate::simulator::event::send_event::SendEvent;
 use crate::simulator::event::Event;
 use crate::simulator::randomness_engine::RandomnessEngine;
 use crate::simulator::Simulator;
+use std::collections::hash_map::Entry::Vacant;
 
 #[derive(Debug, Clone)]
 pub struct ReceiveEvent {
@@ -42,6 +45,16 @@ impl Event for ReceiveEvent {
 
         // self.receive_packet(ecs, simulator, packets);
         self.receive(ecs, simulator, &resource.blocks, &resource.config);
+    }
+
+    fn logger_data(&self, time: f64) -> EventLoggerInfo {
+        IsReceiveEvent(
+            self.block_index,
+            self.from,
+            self.node,
+            self.msg_type.clone(),
+            time,
+        )
     }
 }
 
@@ -103,8 +116,8 @@ impl ReceiveEvent {
 
     fn process_inv_message(&self, ecs: &mut Network, simulator: &mut Simulator, blocks: &[Block]) {
         let seen_blocks = &mut ecs.already_seen_blocks[self.node].list;
-        if !seen_blocks.contains_key(&self.block_index) {
-            seen_blocks.insert(self.block_index, false);
+        if let Vacant(e) = seen_blocks.entry(self.block_index) {
+            e.insert(false);
             self.simulate_download(ecs, simulator, blocks, RequestDataMessage(IsBlock));
         }
     }
