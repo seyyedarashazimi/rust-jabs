@@ -1,6 +1,3 @@
-// pub mod inv_message;
-pub mod packet;
-
 use crate::ledger_data::block::Block;
 use crate::ledger_data::block_factory::{
     BITCOIN_INV_SIZE, GET_DATA_OVERHEAD, INV_MESSAGE_OVERHEAD,

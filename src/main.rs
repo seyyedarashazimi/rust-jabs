@@ -1,4 +1,5 @@
 use rust_jabs::log::block_confirmation_logger::BlockConfirmationLogger;
+use rust_jabs::log::block_propagation_delay_logger::BlockPropagationDelayLogger;
 use rust_jabs::log::blockchain_reorg_logger::BlockchainReorgLogger;
 use rust_jabs::log::EventLogger;
 use rust_jabs::scenario::bitcoin_global_network_scenario::BitcoinGlobalNetworkScenario;
@@ -23,6 +24,14 @@ fn main() -> Result<(), std::io::Error> {
     bitcoin_scenario.add_new_logger(Box::new(EventLogger::from_path(
         &logger_dir.join("bitcoin-confirmations-log.csv"),
         BlockConfirmationLogger,
+    )?));
+    bitcoin_scenario.add_new_logger(Box::new(EventLogger::from_path(
+        &logger_dir.join("bitcoin-50-propagation-delay-log.csv.csv"),
+        BlockPropagationDelayLogger::new(0.5),
+    )?));
+    bitcoin_scenario.add_new_logger(Box::new(EventLogger::from_path(
+        &logger_dir.join("bitcoin-90-propagation-delay-log.csv"),
+        BlockPropagationDelayLogger::new(0.9),
     )?));
     bitcoin_scenario.add_new_logger(Box::new(EventLogger::from_path(
         &logger_dir.join("bitcoin-reorgs-log.csv"),

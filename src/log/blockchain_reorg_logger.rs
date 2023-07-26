@@ -1,8 +1,7 @@
 use crate::consensus::blockchain::local_block_tree::LocalBlockTree;
 use crate::log::EventLoggerInfo::IsReceiveEvent;
 use crate::log::{CSVLogger, EventLoggerInfo};
-use crate::network::message::DataType::IsBlock;
-use crate::network::message::MessageType::DataMessage;
+use crate::network::message::{DataType, MessageType};
 use crate::network::resource::NetworkResource;
 use crate::network::Network;
 
@@ -27,12 +26,12 @@ impl CSVLogger for BlockchainReorgLogger {
         ecs: &Network,
         resource: &NetworkResource,
     ) -> bool {
-        if let IsReceiveEvent(block_index, _, node_index, DataMessage(IsBlock), _) = info {
-            self.network_view_block_tree
-                .add(*block_index, &resource.blocks);
+        if let IsReceiveEvent(block, _, node, MessageType::DataMessage(DataType::IsBlock), _) = info
+        {
+            self.network_view_block_tree.add(*block, &resource.blocks);
             self.previous_head_chain_index =
-                Some(ecs.consensus_algorithm[*node_index].current_main_chain_head_index);
-            self.current_node_index = Some(*node_index);
+                Some(ecs.consensus_algorithm[*node].current_main_chain_head_index);
+            self.current_node_index = Some(*node);
             self.new_block_received = true;
         }
         false

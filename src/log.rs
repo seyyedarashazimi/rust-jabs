@@ -1,5 +1,6 @@
 pub mod block_confirmation_logger;
 pub mod block_generation_logger;
+pub mod block_propagation_delay_logger;
 pub mod blockchain_reorg_logger;
 
 use crate::network::message::MessageType;
