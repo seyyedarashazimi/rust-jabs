@@ -3,9 +3,8 @@ pub mod block_generation_logger;
 pub mod block_propagation_delay_logger;
 pub mod blockchain_reorg_logger;
 
+use crate::log::blockchain_reorg_logger::BlockchainReorgLogger;
 use crate::network::message::MessageType;
-use crate::network::resource::NetworkResource;
-use crate::network::Network;
 use crate::scenario::ScenarioData;
 use csv::Writer;
 use std::fs::File;
@@ -23,38 +22,29 @@ pub trait CSVLogger {
     fn csv_starting_comment(&mut self, scenario_data: &ScenarioData) -> Vec<String> {
         scenario_data.into()
     }
-
     fn csv_output_condition_before_event(
         &mut self,
         _info: &EventLoggerInfo,
-        _ecs: &Network,
-        _resource: &NetworkResource,
+        _network: &dyn NetworkLogHandler,
     ) -> bool {
         false
     }
-
     fn csv_output_condition_after_event(
         &mut self,
         _info: &EventLoggerInfo,
-        _ecs: &Network,
-        _resource: &NetworkResource,
+        _network: &dyn NetworkLogHandler,
     ) -> bool {
         false
     }
-
     fn csv_output_condition_final_per_node(&self) -> bool {
         false
     }
-
     fn csv_header_output(&self) -> Vec<String>;
-
     fn csv_event_output(
         &self,
         info: &EventLoggerInfo,
-        ecs: &Network,
-        resource: &NetworkResource,
+        network: &dyn NetworkLogHandler,
     ) -> Vec<String>;
-
     fn csv_node_output(&self, _node_index: usize) -> Vec<String> {
         Vec::default()
     }
@@ -65,16 +55,46 @@ pub trait Logger {
     fn log_before_each_event(
         &mut self,
         info: &EventLoggerInfo,
-        ecs: &Network,
-        resource: &NetworkResource,
+        network: &dyn NetworkLogHandler,
     ) -> csv::Result<()>;
+
     fn log_after_each_event(
         &mut self,
         info: &EventLoggerInfo,
-        ecs: &Network,
-        resource: &NetworkResource,
+        network: &dyn NetworkLogHandler,
     ) -> csv::Result<()>;
+
     fn final_log(&mut self, scenario_data: &ScenarioData) -> Result<(), std::io::Error>;
+}
+
+/// A trait used for a network to provide log data to `Logger` objects.
+pub trait NetworkLogHandler {
+    fn get_block_creation_time(&self, block_index: usize) -> f64;
+    fn get_block_creator(&self, block_index: usize) -> Option<usize>;
+    fn get_block_height(&self, block_index: usize) -> i32;
+    fn get_block_size(&self, block_index: usize) -> u64;
+    fn get_block_parents(&self, block_index: usize) -> &Vec<usize>;
+    fn get_num_of_nodes(&self) -> usize;
+
+    // reorg logger methods:
+    fn block_reorg_before(
+        &self,
+        _reorg_logger: &mut BlockchainReorgLogger,
+        _block_index: &usize,
+        _node_index: &usize,
+    ) {
+    }
+    fn block_reorg_after(&self, _reorg_logger: &mut BlockchainReorgLogger) -> bool {
+        false
+    }
+    fn block_reorg_output_length(
+        &self,
+        _reorg_logger: &BlockchainReorgLogger,
+        _previous_head: usize,
+        _node_index: &usize,
+    ) -> i32 {
+        0
+    }
 }
 
 pub struct EventLogger<C: CSVLogger> {
@@ -106,33 +126,32 @@ impl<C: CSVLogger> Logger for EventLogger<C> {
     fn log_before_each_event(
         &mut self,
         info: &EventLoggerInfo,
-        ecs: &Network,
-        resource: &NetworkResource,
+        network: &dyn NetworkLogHandler,
     ) -> csv::Result<()> {
         if self
             .csv_logger
-            .csv_output_condition_before_event(info, ecs, resource)
+            .csv_output_condition_before_event(info, network)
         {
             self.csv_writer
-                .write_record(self.csv_logger.csv_event_output(info, ecs, resource))?;
+                .write_record(self.csv_logger.csv_event_output(info, network))?;
         }
         Ok(())
     }
     fn log_after_each_event(
         &mut self,
         info: &EventLoggerInfo,
-        ecs: &Network,
-        resource: &NetworkResource,
+        network: &dyn NetworkLogHandler,
     ) -> csv::Result<()> {
         if self
             .csv_logger
-            .csv_output_condition_after_event(info, ecs, resource)
+            .csv_output_condition_after_event(info, network)
         {
             self.csv_writer
-                .write_record(self.csv_logger.csv_event_output(info, ecs, resource))?;
+                .write_record(self.csv_logger.csv_event_output(info, network))?;
         }
         Ok(())
     }
+
     fn final_log(&mut self, scenario_data: &ScenarioData) -> Result<(), std::io::Error> {
         if self.csv_logger.csv_output_condition_final_per_node() {
             for node in 0..scenario_data.num_of_nodes {

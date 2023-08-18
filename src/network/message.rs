@@ -1,15 +1,15 @@
-use crate::ledger_data::block::Block;
+use crate::ledger_data::bitcoin_block::BitcoinBlock;
 use crate::ledger_data::block_factory::{
     BITCOIN_INV_SIZE, GET_DATA_OVERHEAD, INV_MESSAGE_OVERHEAD,
 };
 
-#[derive(Debug, Hash, Eq, PartialEq, Clone)]
+#[derive(Debug, Hash, Eq, PartialEq, Clone, Copy)]
 pub enum DataType {
     IsBlock,
     IsTx,
 }
 
-#[derive(Debug, Hash, Eq, PartialEq, Clone)]
+#[derive(Debug, Hash, Eq, PartialEq, Clone, Copy)]
 pub enum MessageType {
     DataMessage(DataType),
     InvMessage(DataType),
@@ -18,7 +18,7 @@ pub enum MessageType {
 }
 
 impl MessageType {
-    pub fn get_size(&self, block_index: usize, blocks: &[Block]) -> u64 {
+    pub fn get_size(&self, block_index: usize, blocks: &[BitcoinBlock]) -> u64 {
         match self {
             Self::DataMessage(dt) => Self::bitcoin_data_size(dt, block_index, blocks),
             Self::InvMessage(_) => Self::bitcoin_inv_size(),
@@ -27,7 +27,7 @@ impl MessageType {
         }
     }
 
-    fn bitcoin_data_size(data_type: &DataType, block_index: usize, blocks: &[Block]) -> u64 {
+    fn bitcoin_data_size(data_type: &DataType, block_index: usize, blocks: &[BitcoinBlock]) -> u64 {
         match data_type {
             DataType::IsBlock => blocks[block_index].size,
             DataType::IsTx => 1_u64, // todo

@@ -1,5 +1,6 @@
 use crate::consensus::blockchain::local_block::LocalBlock;
 use crate::ledger_data::block::Block;
+use crate::ledger_data::single_parent::SingleParent;
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 
@@ -24,7 +25,10 @@ impl LocalBlockTree {
         Self { local_block_dag }
     }
 
-    pub fn add(&mut self, block_index: usize, blocks: &[Block]) {
+    pub fn add<B>(&mut self, block_index: usize, blocks: &[B])
+    where
+        B: Block,
+    {
         if !self.contains(block_index) {
             // create a new local block for the received block index.
             let mut local_block = LocalBlock::new(block_index);
@@ -36,13 +40,13 @@ impl LocalBlockTree {
                 .keys()
                 .filter(|&&block_index_in_local_dag| {
                     blocks[block_index_in_local_dag]
-                        .parents
+                        .get_parents()
                         .contains(&block_index)
                 });
             local_block.children_index.extend(seen_children);
 
             // find all parents of this block from received blocks:
-            for parent in &blocks[block_index].parents {
+            for parent in blocks[block_index].get_parents() {
                 if let Some(local_parent) = self.local_block_dag.get_mut(parent) {
                     local_parent.children_index.insert(block_index);
                     if local_parent.is_connected_to_genesis {
@@ -113,19 +117,22 @@ impl LocalBlockTree {
     /// returns: Option<usize>
     /// The `Option` ancestor with largest height value.
     ///
-    pub fn get_common_ancestor(&self, block_a: usize, block_b: usize, blocks: &[Block]) -> usize {
+    pub fn get_common_ancestor<B>(&self, block_a: usize, block_b: usize, blocks: &[B]) -> usize
+    where
+        B: Block + SingleParent,
+    {
         let mut block_x = block_a;
         let mut block_y = block_b;
 
         let genesis_index = 0;
 
-        if blocks[block_a].height > blocks[block_b].height {
+        if blocks[block_a].get_height() > blocks[block_b].get_height() {
             block_x = self
-                .get_single_ancestor_of_height(block_a, blocks[block_b].height, blocks)
+                .get_single_ancestor_of_height(block_a, blocks[block_b].get_height(), blocks)
                 .unwrap_or(genesis_index);
-        } else if blocks[block_a].height < blocks[block_b].height {
+        } else if blocks[block_a].get_height() < blocks[block_b].get_height() {
             block_y = self
-                .get_single_ancestor_of_height(block_b, blocks[block_a].height, blocks)
+                .get_single_ancestor_of_height(block_b, blocks[block_a].get_height(), blocks)
                 .unwrap_or(genesis_index);
         }
 
@@ -150,22 +157,25 @@ impl LocalBlockTree {
     ///
     /// returns: the `Option` ancestor index with height equal to the input height.
     ///
-    pub fn get_single_ancestor_of_height(
+    pub fn get_single_ancestor_of_height<B>(
         &self,
         block_index: usize,
         height: i32,
-        blocks: &[Block],
-    ) -> Option<usize> {
-        // instead of accessing blocks directly from blocks, we accurately
-        // search for the ancestors and the block among local_block to
-        // to be sure each ancestor is received previously. A faster but
-        // not accurate way is to use blocks directly instead of local_block.
+        blocks: &[B],
+    ) -> Option<usize>
+    where
+        B: Block + SingleParent,
+    {
+        //! instead of accessing blocks directly from blocks, we accurately
+        //! search for the ancestors and the block among local_block to
+        //! to be sure each ancestor is received previously. A faster but
+        //! not accurate way is to use blocks directly instead of local_block.
 
         if !self.contains(block_index) {
             return None;
         } else {
             let block = &blocks[block_index];
-            match block.height.cmp(&height) {
+            match block.get_height().cmp(&height) {
                 Ordering::Equal => return Some(block_index),
                 Ordering::Less => return None,
                 Ordering::Greater => {
@@ -173,7 +183,7 @@ impl LocalBlockTree {
                         loop {
                             if !self.contains(ancestor_index) {
                                 return None;
-                            } else if blocks[ancestor_index].height == height {
+                            } else if blocks[ancestor_index].get_height() == height {
                                 return Some(ancestor_index);
                             } else {
                                 match blocks[ancestor_index].get_single_parent() {
@@ -200,7 +210,10 @@ impl LocalBlockTree {
     ///
     /// returns: all ancestors in the local block tree
     ///
-    pub fn get_all_single_ancestors(&self, block_index: usize, blocks: &[Block]) -> HashSet<usize> {
+    pub fn get_all_single_ancestors<B>(&self, block_index: usize, blocks: &[B]) -> HashSet<usize>
+    where
+        B: Block + SingleParent,
+    {
         if !self.contains(block_index) {
             return HashSet::new();
         } else if let Some(mut ancestor_block_index) = blocks[block_index].get_single_parent() {

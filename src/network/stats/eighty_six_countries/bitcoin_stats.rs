@@ -38,7 +38,7 @@ pub fn reset_and_sample_all_bitcoin_miners_hash_power(
     miners: &[usize],
     hash_power: &mut [Option<f64>],
     rand: &mut RandomnessEngine,
-    average_mining_block_interval: f64,
+    average_block_mining_interval: f64,
     difficulty: f64,
 ) {
     for i in 0..hash_power.len() {
@@ -51,7 +51,7 @@ pub fn reset_and_sample_all_bitcoin_miners_hash_power(
         .collect();
 
     let total_hash_power: f64 = sampled_hash_power.iter().sum();
-    let hash_power_scale: f64 = difficulty / (total_hash_power * average_mining_block_interval);
+    let hash_power_scale: f64 = difficulty / (total_hash_power * average_block_mining_interval);
 
     // scaling the hash-powers and assign to miners
     for (miner, hp) in miners.iter().zip(sampled_hash_power.iter()) {

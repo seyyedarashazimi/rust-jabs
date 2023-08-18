@@ -14,15 +14,9 @@ pub struct NodeName {
     _name: String,
 }
 
-/// Type of each node.(WIP)
-#[derive(Default, Debug, Clone)]
-pub struct NodeType;
-
 /// Vector of indices denoting the neighbors of a node.
 #[derive(Default, Debug, Clone)]
-pub struct Neighbors {
-    pub list: Vec<usize>,
-}
+pub struct Neighbors(pub Vec<usize>);
 
 /// Connection status of each node.
 #[derive(Default, Debug, Clone)]
@@ -63,24 +57,11 @@ pub struct Downlink {
 }
 
 #[derive(Default, Debug, Clone)]
-pub struct AlreadySeenBlocks {
-    pub list: HashMap<usize, bool>,
-}
+pub struct AlreadySeenBlocks(pub HashMap<usize, bool>);
 
-// impl AlreadySeenBlocks {
-//     pub fn inv_seen(&mut self, block_index: usize) {
-//         self.list.insert(block_index, false);
-//     }
-//
-//     pub fn data_seen(&mut self, block_index: usize) {
-//         self.list.insert(block_index, true);
-//     }
-//
-//     pub fn is_inv_seen(&self, block_index: &usize) -> bool {
-//         self.list.contains_key(block_index)
-//     }
-//
-//     pub fn is_data_seen(&self, block_index: &usize) -> bool {
-//         self.list.contains_key(block_index) && self.list.get()
-//     }
-// }
+/// Type of each node.(WIP)
+// #[derive(Default, Debug, Clone)]
+pub enum NodeType {
+    IsBitcoin,
+    IsEthereum,
+}

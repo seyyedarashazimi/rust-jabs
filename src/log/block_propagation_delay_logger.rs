@@ -1,8 +1,6 @@
 use crate::log::EventLoggerInfo::IsReceiveEvent;
-use crate::log::{CSVLogger, EventLoggerInfo};
+use crate::log::{CSVLogger, EventLoggerInfo, NetworkLogHandler};
 use crate::network::message::{DataType, MessageType};
-use crate::network::resource::NetworkResource;
-use crate::network::Network;
 use std::collections::{HashMap, HashSet};
 
 pub struct BlockPropagationDelayLogger {
@@ -23,8 +21,7 @@ impl CSVLogger for BlockPropagationDelayLogger {
     fn csv_output_condition_after_event(
         &mut self,
         info: &EventLoggerInfo,
-        ecs: &Network,
-        _: &NetworkResource,
+        network: &dyn NetworkLogHandler,
     ) -> bool {
         if let IsReceiveEvent(block, _, node, MessageType::DataMessage(DataType::IsBlock), _) = info
         {
@@ -34,7 +31,8 @@ impl CSVLogger for BlockPropagationDelayLogger {
                 self.received_by.insert(*block, HashSet::new());
                 self.received_by.get_mut(block).unwrap().insert(*node);
             }
-            let exact_number = (ecs.num_of_nodes as f64) * self.shared_of_nodes_received_block;
+            let exact_number =
+                (network.get_num_of_nodes() as f64) * self.shared_of_nodes_received_block;
             return self.received_by.get(block).unwrap().len() == (exact_number as usize);
         }
         false
@@ -55,20 +53,19 @@ impl CSVLogger for BlockPropagationDelayLogger {
     fn csv_event_output(
         &self,
         info: &EventLoggerInfo,
-        _: &Network,
-        resource: &NetworkResource,
+        network: &dyn NetworkLogHandler,
     ) -> Vec<String> {
         if let IsReceiveEvent(block_index, _, _, _, time) = info {
             return vec![
                 time.to_string(),
-                (time - resource.blocks[*block_index].get_creation_time()).to_string(),
+                (time - network.get_block_creation_time(*block_index)).to_string(),
                 block_index.to_string(),
-                resource.blocks[*block_index].height.to_string(),
-                resource.blocks[*block_index]
-                    .creator
+                network.get_block_height(*block_index).to_string(),
+                network
+                    .get_block_creator(*block_index)
                     .map(|c| c.to_string())
                     .unwrap_or("None".to_string()),
-                resource.blocks[*block_index].size.to_string(),
+                network.get_block_size(*block_index).to_string(),
             ];
         }
         vec![String::new(); 6]

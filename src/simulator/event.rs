@@ -2,13 +2,11 @@
 
 pub mod block_confirmation_event;
 pub mod block_mining_process;
-mod generate_block_event;
-mod receive_event;
-mod send_event;
+pub mod generate_block_event;
+pub mod receive_event;
+pub mod send_event;
 
-use self::receive_event::ReceiveEvent;
 use crate::log::EventLoggerInfo;
-use crate::network::resource::NetworkResource;
 use crate::network::Network;
 use crate::simulator::randomness_engine::RandomnessEngine;
 use crate::simulator::Simulator;
@@ -19,10 +17,9 @@ use std::fmt::Debug;
 pub trait Event: Debug {
     fn execute(
         &self,
-        _ecs: &mut Network,
+        _network: &mut dyn Network,
         _simulator: &mut Simulator,
         _rand: &mut RandomnessEngine,
-        _resource: &mut NetworkResource,
     ) {
     }
 

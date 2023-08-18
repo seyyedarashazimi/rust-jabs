@@ -1,6 +1,4 @@
-use crate::log::{CSVLogger, EventLoggerInfo};
-use crate::network::resource::NetworkResource;
-use crate::network::Network;
+use crate::log::{CSVLogger, EventLoggerInfo, NetworkLogHandler};
 
 #[derive(Default)]
 pub struct BlockConfirmationLogger;
@@ -9,8 +7,7 @@ impl CSVLogger for BlockConfirmationLogger {
     fn csv_output_condition_after_event(
         &mut self,
         info: &EventLoggerInfo,
-        _: &Network,
-        _: &NetworkResource,
+        _: &dyn NetworkLogHandler,
     ) -> bool {
         matches!(info, EventLoggerInfo::IsBlockConfirmationEvent(..))
     }
@@ -30,20 +27,17 @@ impl CSVLogger for BlockConfirmationLogger {
     fn csv_event_output(
         &self,
         info: &EventLoggerInfo,
-        _ecs: &Network,
-        resource: &NetworkResource,
+        network: &dyn NetworkLogHandler,
     ) -> Vec<String> {
         if let EventLoggerInfo::IsBlockConfirmationEvent(block_index, node_index, time) = info {
             vec![
                 time.to_string(),
                 node_index.to_string(),
-                resource.blocks[*block_index].height.to_string(),
-                resource.blocks[*block_index].size.to_string(),
-                resource.blocks[*block_index]
-                    .get_creation_time()
-                    .to_string(),
-                resource.blocks[*block_index]
-                    .creator
+                network.get_block_height(*block_index).to_string(),
+                network.get_block_size(*block_index).to_string(),
+                network.get_block_creation_time(*block_index).to_string(),
+                network
+                    .get_block_creator(*block_index)
                     .map(|c| c.to_string())
                     .unwrap_or("None".to_string()),
             ]

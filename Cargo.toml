@@ -1,6 +1,6 @@
 [package]
 name = "rust-jabs"
-version = "0.0.2"
+version = "0.0.3"
 authors = ["Seyyed Arash Azimi"]
 edition = "2021"
 

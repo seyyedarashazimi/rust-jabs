@@ -5,7 +5,6 @@ pub mod randomness_engine;
 pub mod scheduled_event;
 
 use self::scheduled_event::ScheduledEvent;
-use crate::network::resource::NetworkResource;
 use crate::network::Network;
 use crate::simulator::event::Event;
 use crate::simulator::randomness_engine::RandomnessEngine;
@@ -39,18 +38,11 @@ impl Simulator {
     }
 
     /// Executes the next event in the event queue.
-    pub fn execute_next_event(
-        &mut self,
-        ecs: &mut Network,
-        rand: &mut RandomnessEngine,
-        resource: &mut NetworkResource,
-    ) {
+    pub fn execute_next_event(&mut self, network: &mut dyn Network, rand: &mut RandomnessEngine) {
         if let Some(current_scheduled_event) = self.event_queue.pop() {
             self.simulation_time = current_scheduled_event.time();
             // println!("simulation time: {}", self.simulation_time);
-            current_scheduled_event
-                .event
-                .execute(ecs, self, rand, resource);
+            current_scheduled_event.event.execute(network, self, rand);
         }
     }
 

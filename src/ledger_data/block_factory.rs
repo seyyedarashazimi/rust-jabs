@@ -1,6 +1,10 @@
-use crate::ledger_data::block::Block;
+use crate::ledger_data::bitcoin_block::BitcoinBlock;
 use crate::simulator::randomness_engine::RandomnessEngine;
 use crate::simulator::Simulator;
+
+pub const ETHEREUM_BLOCK_HEADER_SIZE: u64 = 543; // A header could have variable size but mostly its really close this value
+pub const ETHEREUM_BLOCK_HASH_SIZE: u64 = 36; // 32 byte hash + 4 byte network id
+pub const ETHEREUM_MIN_DIFFICULTY: f64 = 17_146_335_232.0;
 
 pub const BITCOIN_BLOCK_HEADER_SIZE: u64 = 80;
 pub const BITCOIN_INV_SIZE: u64 = 36; // 4 byte type + 32 byte hash
@@ -26,7 +30,7 @@ pub const BITCOIN_BLOCK_SIZE_2020: [f64; 23] = [
     0.0472, 0.0481, 0.0477, 0.0479, 0.0484, 0.0482, 0.0475, 0.0464, 0.0454, 0.0434, 0.0420,
 ];
 
-pub struct BlockFactory {}
+pub struct BlockFactory;
 
 impl BlockFactory {
     pub fn sample_bitcoin_block_size(rand: &mut RandomnessEngine) -> u64 {
@@ -37,13 +41,14 @@ impl BlockFactory {
     }
 
     pub fn sample_bitcoin_block(
-        blocks: &[Block],
+        blocks: &[BitcoinBlock],
         simulator: &Simulator,
         rand: &mut RandomnessEngine,
         creator: Option<usize>,
         parent: usize,
+        difficulty: f64,
         weight: f64,
-    ) -> Block {
+    ) -> BitcoinBlock {
         if FORK_LOGGER {
             for (index, block) in blocks.iter().enumerate() {
                 if block.parents.contains(&parent) {
@@ -57,13 +62,13 @@ impl BlockFactory {
             }
         }
 
-        Block::new_with_parents(
+        BitcoinBlock::new_with_parents(
             simulator.simulation_time,
             creator,
             blocks[parent].height + 1,
             vec![parent],
             BlockFactory::compact_size(BlockFactory::sample_bitcoin_block_size(rand)),
-            // 1,
+            difficulty,
             weight,
         )
     }
